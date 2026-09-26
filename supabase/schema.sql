@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Portal de Evaluaciones (Background Check / Due Diligence)
--- Stratego Risk / Defender78
+-- Defender78
 --
 -- Ejecutar completo en: Supabase Dashboard > SQL Editor > New query
 -- =====================================================================

@@ -1,4 +1,4 @@
-# Portal de Evaluaciones — Stratego Risk / Defender78
+# Portal de Evaluaciones — Defender78
 
 MVP de background check / due diligence: el evaluado recibe usuario y
 contraseña, ingresa a un portal, llena sus datos y carga sus documentos;
@@ -7,6 +7,13 @@ el equipo Defender revisa cada caso desde un panel de administración.
 No requiere Node.js, Python ni ningún build local: es un sitio estático
 (HTML/CSS/JS) que habla directo con [Supabase](https://supabase.com)
 (base de datos + autenticación + almacenamiento de archivos).
+
+Tema visual: paleta corporativa de Defender78 (blanco humo + rojo, según
+el Manual de Marca Grupo Defender ed.01 2026) — no la paleta oscura de
+Strategorisk.
+
+- **Repositorio:** https://github.com/Santynieto/portal-evaluaciones
+- **Dominio de destino:** `evaluaciones.defender.com.ec`
 
 ## Estructura
 
@@ -64,25 +71,29 @@ con los valores que copiaste en el Paso 1. La `anon key` es pública por
 diseño (así funciona Supabase) — la seguridad real la dan las políticas de
 "Row Level Security" que ya quedaron en `schema.sql`, no esta llave.
 
-## Paso 5 — Probar localmente (opcional)
+## Paso 5 — Publicar el código en GitHub
 
-Como no hay servidor, puedes simplemente abrir `public/index.html`
-haciendo doble clic, o si quieres evitar problemas de CORS al abrir
-archivos directo, sirve la carpeta con cualquier servidor estático simple.
+Ya existe el repositorio https://github.com/Santynieto/portal-evaluaciones
+con el primer commit listo (rama `main`). Cada vez que se edite el código,
+el flujo es: `git add -A`, `git commit -m "..."`, `git push`.
 
-## Paso 6 — Publicar el sitio (sin instalar nada)
+## Paso 6 — Desplegar en Netlify o Vercel, conectado al repo de GitHub
 
-**Opción recomendada — Netlify Drop:**
-1. Ve a https://app.netlify.com/drop
-2. Arrastra la carpeta `public/` completa a la página.
-3. En segundos te da una URL pública (ej. `algo.netlify.app`).
-4. Luego, en **Site settings > Domain management**, agrega el dominio
-   personalizado `portal.strategorisk.com` y sigue las instrucciones para
-   apuntar el DNS (un registro CNAME) desde donde administras el dominio
-   `strategorisk.com`.
-
-**Alternativa:** Vercel (vercel.com) tiene un flujo de "Deploy" por drag & drop
-muy similar desde su dashboard web.
+1. Entra a https://app.netlify.com (o https://vercel.com) e inicia sesión
+   con tu cuenta de GitHub.
+2. **Add new site > Import an existing project** (Netlify) o **New
+   Project** (Vercel), y selecciona el repositorio `portal-evaluaciones`.
+3. Configuración de build:
+   - **Build command:** dejar vacío (no hay build).
+   - **Publish directory:** `public`
+4. Deploy. Con esto, cada `git push` a `main` vuelve a publicar el sitio
+   automáticamente.
+5. En **Domain settings**, agrega el dominio personalizado
+   `evaluaciones.defender.com.ec`.
+6. En el panel DNS donde administras `defender.com.ec`, agrega el registro
+   que Netlify/Vercel te indique (normalmente un **CNAME** de
+   `evaluaciones` apuntando al dominio que te dé la plataforma, ej.
+   `tu-sitio.netlify.app` o `cname.vercel-dns.com`).
 
 ## Cómo se crea un caso nuevo (flujo del admin)
 
