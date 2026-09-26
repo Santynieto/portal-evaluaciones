@@ -52,12 +52,14 @@ public/            <- esto es lo que se despliega (Vercel/Netlify)
   js/analista.js
   js/admin.js
 netlify/functions/
-  crear-evaluado.js   Function servidor: crea usuario+caso en un solo paso
+  crear-evaluado.js      Function servidor: crea usuario+caso en un solo paso
+  analizar-documento.js  Function servidor: analiza un PDF de Judicatura con Claude
 supabase/
   schema.sql               Esquema completo (para una instalación nueva)
   patch_analistas.sql      Parche: agrega el rol analista
   patch_riesgo_captura.sql Parche: niveles de riesgo, capturas y PDF final
   patch_fases.sql          Parche: una fila por caso+fuente (no historial)
+  patch_analisis_ia.sql    Parche: columna para los análisis de IA
                            (correr los parches solo si el schema.sql ya
                            estaba cargado antes de que existieran)
 ```
@@ -102,8 +104,9 @@ insert into public.analistas (user_id, nombre) values ('PEGA-AQUI-EL-UUID', 'Nom
 ```
 
 Si tu proyecto ya tenía cargado el rol analista pero no los niveles de
-riesgo/capturas, corre además [`supabase/patch_riesgo_captura.sql`](supabase/patch_riesgo_captura.sql)
-una vez en el SQL Editor.
+riesgo/capturas, corre además [`supabase/patch_riesgo_captura.sql`](supabase/patch_riesgo_captura.sql),
+luego [`supabase/patch_fases.sql`](supabase/patch_fases.sql), y luego
+[`supabase/patch_analisis_ia.sql`](supabase/patch_analisis_ia.sql), en ese orden.
 
 ## Paso 4 — Conectar el sitio a tu proyecto
 
@@ -157,6 +160,26 @@ servidor en `netlify/functions/crear-evaluado.js`. Para que funcione:
    - `SUPABASE_SERVICE_ROLE_KEY` = la clave secreta que copiaste
 3. Vuelve a desplegar (un nuevo `git push`, o el botón "Trigger deploy" en
    Netlify) para que la función tome las variables nuevas.
+
+## Paso 8 — Habilitar el análisis con IA de los documentos de Judicatura (opcional)
+
+En la fase de Judicatura, el analista puede subir el/los PDF del juicio
+descargados de la Función Judicial y pedirle a Claude (Anthropic) que
+resuma el estado del proceso y sugiera un nivel de riesgo. Usa la función
+servidor `netlify/functions/analizar-documento.js`. Para activarlo:
+
+1. Crea una cuenta en https://console.anthropic.com (si no tienes) y genera
+   una **API key** (Settings > API Keys). Tiene costo por uso — para el
+   volumen de este portal, unos centavos de dólar por documento analizado.
+2. En Netlify, agrega la variable de entorno:
+   - `ANTHROPIC_API_KEY` = la clave que generaste (márcala como "Contains
+     secret values")
+3. Corre [`supabase/patch_analisis_ia.sql`](supabase/patch_analisis_ia.sql)
+   en el SQL Editor de Supabase si tu base de datos ya existía.
+4. Vuelve a desplegar (nuevo `git push` o "Trigger deploy").
+
+Sin esta variable configurada, el botón "Analizar con IA" simplemente
+mostrará un error — el resto del portal sigue funcionando normal.
 
 ## Cómo se crea un caso nuevo (flujo del admin)
 

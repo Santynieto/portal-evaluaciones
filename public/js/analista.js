@@ -65,6 +65,16 @@ function fuenteInfo(id) {
   return FUENTES_VERIFICACION.find(f => f.id === id) || { nombre: id, url: null };
 }
 
+function analisisCardHtml(a) {
+  return `
+    <div class="card" style="margin-top:10px;">
+      <p style="font-size:13px; color:var(--texto-tenue); margin:0 0 6px;">${a.nombre}</p>
+      <p style="margin:0 0 8px;">${a.resumen}</p>
+      <span class="badge ${a.nivel_riesgo}">${a.nivel_riesgo}</span>
+      <p style="font-size:12px; color:var(--texto-tenue); margin-top:6px;">${a.justificacion || ""}</p>
+    </div>`;
+}
+
 async function enlaceDocumento(casoId, prefijo) {
   const { data: archivos } = await window.sb.storage.from("documentos").list(casoId);
   const archivo = (archivos || []).find(f => f.name.startsWith(prefijo));
@@ -131,6 +141,14 @@ async function abrirDetalle(casoId) {
       ` : ""}
       ${info.url ? `<p><a class="doc-link" href="${info.url}" target="_blank" rel="noopener">Abrir ${info.nombre} ↗</a></p>` : ""}
 
+      ${fase.fuente === "judicatura" ? `
+        <label>Subir documento(s) del juicio (PDF, descargados de Judicatura)</label>
+        <input type="file" class="judicatura-archivos" accept="application/pdf" multiple>
+        <button type="button" class="secundario judicatura-btn-analizar">Analizar con IA</button>
+        <span class="judicatura-estado" style="margin-left:10px; font-size:13px; color:var(--texto-tenue);"></span>
+        <div class="judicatura-analisis">${(existente?.analisis_documentos || []).map(analisisCardHtml).join("")}</div>
+      ` : ""}
+
       <label>Nivel de riesgo</label>
       <select class="fase-riesgo">
         <option value="bajo">Bajo</option>
@@ -192,6 +210,57 @@ async function abrirDetalle(casoId) {
   document.querySelectorAll("[data-fase]").forEach((card) => {
     const fuente = card.dataset.fase;
     let capturaBlob = null;
+    let analisisDocumentos = [...(porFuente[fuente]?.analisis_documentos || [])];
+
+    const btnAnalizar = card.querySelector(".judicatura-btn-analizar");
+    if (btnAnalizar) {
+      btnAnalizar.addEventListener("click", async () => {
+        const estadoEl = card.querySelector(".judicatura-estado");
+        const input = card.querySelector(".judicatura-archivos");
+        const contenedor = card.querySelector(".judicatura-analisis");
+        const archivos = Array.from(input.files || []);
+        if (archivos.length === 0) {
+          estadoEl.textContent = "Selecciona al menos un PDF primero.";
+          return;
+        }
+        const { data: { session } } = await window.sb.auth.getSession();
+
+        for (const archivo of archivos) {
+          estadoEl.textContent = `Analizando ${archivo.name}...`;
+          try {
+            const archivoPath = `${casoId}/verificaciones/judicatura_${Date.now()}_${archivo.name}`;
+            const { error: uploadError } = await window.sb.storage
+              .from("documentos")
+              .upload(archivoPath, archivo, { contentType: "application/pdf" });
+            if (uploadError) throw new Error("Error subiendo el archivo: " + uploadError.message);
+
+            const base64 = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result.split(",")[1]);
+              reader.onerror = reject;
+              reader.readAsDataURL(archivo);
+            });
+
+            const res = await fetch("/.netlify/functions/analizar-documento", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+              body: JSON.stringify({ pdfBase64: base64, nombreArchivo: archivo.name }),
+            });
+            const analisis = await res.json();
+            if (!res.ok) throw new Error(analisis.error || "Error analizando el documento.");
+
+            const entrada = { archivo_path: archivoPath, nombre: archivo.name, ...analisis, analizado_en: new Date().toISOString() };
+            analisisDocumentos.push(entrada);
+            contenedor.insertAdjacentHTML("beforeend", analisisCardHtml(entrada));
+          } catch (err) {
+            estadoEl.textContent = `Error con ${archivo.name}: ${err.message}`;
+            return;
+          }
+        }
+        estadoEl.textContent = "Listo. No olvides darle 'Guardar fase' para conservar estos análisis.";
+        input.value = "";
+      });
+    }
 
     card.querySelector(".fase-btn-capturar").addEventListener("click", async () => {
       const estadoEl = card.querySelector(".fase-captura-estado");
@@ -243,6 +312,7 @@ async function abrirDetalle(casoId) {
         nivel_riesgo: card.querySelector(".fase-riesgo").value,
         notas: card.querySelector(".fase-notas").value.trim(),
         captura_path: capturaPath,
+        analisis_documentos: analisisDocumentos,
         analista_user_id: user.id,
       }, { onConflict: "caso_id,fuente" });
 

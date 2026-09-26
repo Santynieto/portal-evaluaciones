@@ -189,6 +189,7 @@ create table if not exists public.verificaciones (
     check (nivel_riesgo in ('bajo','medio','alto','critico')),
   notas text,
   captura_path text, -- ruta dentro del bucket "documentos" a la captura de pantalla adjunta
+  analisis_documentos jsonb not null default '[]'::jsonb, -- [{archivo_path, nombre, resumen, nivel_riesgo, justificacion, analizado_en}]
   analista_user_id uuid references auth.users(id),
   creado_en timestamptz default now(),
   actualizado_en timestamptz default now(),
