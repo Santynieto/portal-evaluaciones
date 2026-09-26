@@ -47,12 +47,18 @@
 
     <div class="card">
       <h2>Casos</h2>
+      <div style="overflow-x:auto;">
       <table>
         <thead>
-          <tr><th>Nombre</th><th>Empresa</th><th>Tipo</th><th>Estado</th><th>Enviado</th><th>Creado</th></tr>
+          <tr>
+            <th>Nombre</th><th>Empresa</th><th>Tipo</th><th>Estado</th><th>Enviado</th>
+            <th>Identidad</th><th>SUPA</th><th>Fiscalía</th><th>Min. Interior</th><th>Judicatura</th><th>Entorno web</th>
+            <th>Riesgo consolidado</th><th>Creado</th><th>PDF</th>
+          </tr>
         </thead>
         <tbody id="tabla-casos"></tbody>
       </table>
+      </div>
     </div>
   </main>
 
@@ -68,6 +74,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/supabaseClient.js"></script>
+  <script src="js/informe.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

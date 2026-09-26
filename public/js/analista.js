@@ -26,17 +26,37 @@ async function cargarCasos() {
       .eq("caso_id", c.id)
       .maybeSingle();
 
+    const { data: verificaciones } = await window.sb
+      .from("verificaciones")
+      .select("fuente, nivel_riesgo")
+      .eq("caso_id", c.id);
+
+    const porFuente = {};
+    for (const v of verificaciones || []) porFuente[v.fuente] = v;
+    const riesgoConsolidado = calcularRiesgoConsolidado(porFuente);
+
+    const fasesTd = FASES_VERIFICACION.map(fase => {
+      const v = porFuente[fase.fuente];
+      return `<td>${v ? badgeHtml(v.nivel_riesgo) : "<span style='color:var(--texto-tenue)'>-</span>"}</td>`;
+    }).join("");
+
     const tr = document.createElement("tr");
-    tr.className = "clickable";
     tr.innerHTML = `
-      <td>${c.nombre_completo}</td>
+      <td class="clickable" style="cursor:pointer; text-decoration:underline;">${c.nombre_completo}</td>
       <td>${c.empresa_solicitante || "-"}</td>
       <td>${c.tipo_evaluacion}</td>
       <td>${badgeHtml(c.estado)}</td>
       <td>${datos && datos.enviado ? "Sí" : "No"}</td>
+      ${fasesTd}
+      <td>${riesgoConsolidado ? badgeHtml(riesgoConsolidado) : "<span style='color:var(--texto-tenue)'>-</span>"}</td>
       <td>${new Date(c.creado_en).toLocaleDateString("es-EC")}</td>
+      <td><button class="secundario btn-pdf-fila" type="button">PDF</button></td>
     `;
-    tr.addEventListener("click", () => abrirDetalle(c.id));
+    tr.querySelector(".clickable").addEventListener("click", () => abrirDetalle(c.id));
+    tr.querySelector(".btn-pdf-fila").addEventListener("click", (e) => {
+      e.stopPropagation();
+      generarInformePDFPorCasoId(c.id);
+    });
     tbody.appendChild(tr);
   }
 }

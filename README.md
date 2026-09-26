@@ -47,6 +47,7 @@ public/            <- esto es lo que se despliega (Vercel/Netlify)
   admin.html          Panel de revisión y decisión final (equipo Defender)
   js/config.js         Credenciales de conexión a Supabase (editar)
   js/supabaseClient.js  Incluye la lista de fuentes externas (FUENTES_VERIFICACION)
+  js/informe.js         Generación del PDF (compartido: admin.html y analista.html)
   js/formulario.js
   js/analista.js
   js/admin.js
