@@ -95,18 +95,35 @@ el flujo es: `git add -A`, `git commit -m "..."`, `git push`.
    `evaluaciones` apuntando al dominio que te dé la plataforma, ej.
    `tu-sitio.netlify.app` o `cname.vercel-dns.com`).
 
+## Paso 7 — Habilitar la creación de casos desde el panel (función servidor)
+
+Desde el panel admin puedes crear el usuario del evaluado y su caso en un
+solo paso (sin ir a Supabase Dashboard cada vez), gracias a una función
+servidor en `netlify/functions/crear-evaluado.js`. Para que funcione:
+
+1. En Supabase, ve a **Project Settings > API Keys** y copia la clave
+   **secreta** (`sb_secret_...` o `service_role`). Esta clave es sensible:
+   nunca la pegues en el código ni la compartas por chat.
+2. En Netlify, ve a **Project configuration > Environment variables** y
+   agrega dos variables:
+   - `SUPABASE_URL` = tu Project URL (ej. `https://xxxx.supabase.co`)
+   - `SUPABASE_SERVICE_ROLE_KEY` = la clave secreta que copiaste
+3. Vuelve a desplegar (un nuevo `git push`, o el botón "Trigger deploy" en
+   Netlify) para que la función tome las variables nuevas.
+
 ## Cómo se crea un caso nuevo (flujo del admin)
 
-1. En Supabase Dashboard, **Authentication > Users > Add user**: crea al
-   evaluado con su correo y una contraseña temporal. Cópiale el UUID.
-2. Entra al **panel admin** del portal (`admin.html`), sección "Nuevo caso":
-   pega el UUID, el nombre del evaluado, la empresa solicitante y el tipo
-   de evaluación. Esto crea el registro del caso.
-3. Envía manualmente al evaluado (por correo/WhatsApp) el enlace del portal,
-   su correo y la contraseña temporal.
-4. El evaluado ingresa, llena el formulario, sube su cédula y CV, acepta el
+1. Entra al **panel admin** del portal (`admin.html`), sección "Nuevo caso":
+   escribe el correo del evaluado, su nombre completo, la empresa
+   solicitante y el tipo de evaluación, y dale "Crear caso". Esto crea el
+   usuario en Supabase Auth (con una contraseña temporal generada
+   automáticamente) y el registro del caso, en un solo paso.
+2. El panel te muestra la contraseña temporal generada — cópiala y envíasela
+   manualmente al evaluado (por correo/WhatsApp) junto con el enlace del
+   portal y su correo.
+3. El evaluado ingresa, llena el formulario, sube su cédula y CV, acepta el
    consentimiento LOPDP y envía.
-5. Vuelves al panel admin, abres el caso, revisas los datos y documentos,
+4. Vuelves al panel admin, abres el caso, revisas los datos y documentos,
    cambias el estado (en revisión / observado / aprobado / rechazado) y
    dejas notas internas.
 

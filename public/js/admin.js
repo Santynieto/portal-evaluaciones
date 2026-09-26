@@ -126,26 +126,56 @@ function cerrarDetalle() {
   document.getElementById("overlay-detalle").classList.add("oculto");
 }
 
+function generarPasswordTemporal() {
+  const bytes = new Uint8Array(9);
+  crypto.getRandomValues(bytes);
+  return "D" + btoa(String.fromCharCode(...bytes)).replace(/[+/=]/g, "").slice(0, 10) + "!";
+}
+
 document.getElementById("form-nuevo-caso").addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorEl = document.getElementById("error-nuevo-caso");
+  const exitoEl = document.getElementById("exito-nuevo-caso");
+  const btn = document.getElementById("btn-crear-caso");
   errorEl.textContent = "";
+  exitoEl.textContent = "";
+  btn.disabled = true;
+
+  const email = document.getElementById("nc-email").value.trim();
+  const password = generarPasswordTemporal();
 
   const payload = {
-    evaluado_user_id: document.getElementById("nc-uuid").value.trim(),
+    email,
+    password,
     nombre_completo: document.getElementById("nc-nombre").value.trim(),
     empresa_solicitante: document.getElementById("nc-empresa").value.trim(),
     tipo_evaluacion: document.getElementById("nc-tipo").value,
   };
 
-  const { error } = await window.sb.from("casos").insert(payload);
-  if (error) {
-    errorEl.textContent = error.message;
-    return;
-  }
+  try {
+    const { data: { session } } = await window.sb.auth.getSession();
+    const res = await fetch("/.netlify/functions/crear-evaluado", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
 
-  e.target.reset();
-  cargarCasos();
+    if (!res.ok) {
+      throw new Error(data.error || "Error creando el caso.");
+    }
+
+    exitoEl.textContent = `Caso creado. Comparte estas credenciales con el evaluado — correo: ${email} / contraseña temporal: ${password}`;
+    e.target.reset();
+    cargarCasos();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 (async function init() {

@@ -18,12 +18,12 @@
     <div class="card">
       <h2>Nuevo caso</h2>
       <p style="color:var(--texto-tenue); font-size:13px;">
-        Primero crea el usuario del evaluado en Supabase Dashboard &gt; Authentication &gt; Users &gt; Add user
-        (con su correo y una contraseña temporal), copia su UUID, y regístralo aquí como caso.
+        Esto crea de un solo paso el usuario del evaluado (correo + contraseña
+        temporal generada) y su caso.
       </p>
       <form id="form-nuevo-caso">
-        <label for="nc-uuid">UUID del usuario (Auth)</label>
-        <input type="text" id="nc-uuid" placeholder="00000000-0000-0000-0000-000000000000" required>
+        <label for="nc-email">Correo del evaluado</label>
+        <input type="email" id="nc-email" required>
 
         <label for="nc-nombre">Nombre completo del evaluado</label>
         <input type="text" id="nc-nombre" required>
@@ -40,7 +40,8 @@
         </select>
 
         <div class="error" id="error-nuevo-caso"></div>
-        <button type="submit">Crear caso</button>
+        <div class="exito" id="exito-nuevo-caso"></div>
+        <button type="submit" id="btn-crear-caso">Crear caso</button>
       </form>
     </div>
 
