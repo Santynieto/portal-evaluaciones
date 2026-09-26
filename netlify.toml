@@ -1,3 +1,10 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
+
+[build.environment]
+  # SUPABASE_URL no es un secreto: es el Project URL, y aparece a propósito
+  # en public/js/config.js (el cliente del navegador lo necesita para
+  # conectarse). Solo SUPABASE_SERVICE_ROLE_KEY es sensible y esa nunca
+  # aparece en ningún archivo del repositorio.
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL"
