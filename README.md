@@ -2,7 +2,19 @@
 
 MVP de background check / due diligence: el evaluado recibe usuario y
 contraseña, ingresa a un portal, llena sus datos y carga sus documentos;
-el equipo Defender revisa cada caso desde un panel de administración.
+un **analista** investiga el caso (documentos + fuentes externas oficiales)
+y deja sus hallazgos; el **admin** toma la decisión final desde el panel de
+administración.
+
+Tres roles:
+- **Evaluado** — llena el formulario y sube documentos (`formulario.html`).
+- **Analista** — revisa datos/documentos, tiene accesos directos a fuentes
+  externas de verificación (Judicatura, Ministerio del Interior, Fiscalía,
+  Supercías, SUPA, Whitepages), y registra hallazgos por fuente
+  (`analista.html`). Puede marcar el caso como "en revisión" pero no
+  aprobar/rechazar.
+- **Admin** — crea casos, ve todo, toma la decisión final
+  (`admin.html`).
 
 No requiere Node.js, Python ni ningún build local: es un sitio estático
 (HTML/CSS/JS) que habla directo con [Supabase](https://supabase.com)
@@ -21,13 +33,19 @@ Strategorisk.
 public/            <- esto es lo que se despliega (Vercel/Netlify)
   index.html         Login
   formulario.html     Formulario + carga de documentos (evaluado)
-  admin.html          Panel de revisión (equipo Defender)
+  analista.html       Investigación (analista)
+  admin.html          Panel de revisión y decisión final (equipo Defender)
   js/config.js         Credenciales de conexión a Supabase (editar)
-  js/supabaseClient.js
+  js/supabaseClient.js  Incluye la lista de fuentes externas (FUENTES_VERIFICACION)
   js/formulario.js
+  js/analista.js
   js/admin.js
+netlify/functions/
+  crear-evaluado.js   Function servidor: crea usuario+caso en un solo paso
 supabase/
-  schema.sql          Todo el esquema de base de datos + seguridad
+  schema.sql          Esquema completo (para una instalación nueva)
+  patch_analistas.sql Parche incremental que agrega el rol analista
+                      (correr solo si el schema.sql ya estaba cargado)
 ```
 
 ## Paso 1 — Crear el proyecto en Supabase
@@ -57,6 +75,17 @@ supabase/
    ```sql
    insert into public.admins (user_id, nombre) values ('PEGA-AQUI-EL-UUID', 'Tu nombre');
    ```
+
+### Crear un usuario analista (opcional)
+
+Si tu proyecto ya tenía cargado `schema.sql` antes de que existiera el rol
+analista, primero corre una vez [`supabase/patch_analistas.sql`](supabase/patch_analistas.sql)
+completo en el SQL Editor. Luego, igual que con el admin: crea el usuario en
+**Authentication > Users**, copia su UUID, y:
+
+```sql
+insert into public.analistas (user_id, nombre) values ('PEGA-AQUI-EL-UUID', 'Nombre del analista');
+```
 
 ## Paso 4 — Conectar el sitio a tu proyecto
 
