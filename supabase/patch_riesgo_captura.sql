@@ -15,30 +15,32 @@ begin
   end if;
 end $$;
 
--- 2. Adaptar cualquier valor antiguo (sin_novedad/con_novedad/no_verificable)
---    a los 4 niveles nuevos, ANTES de aplicar la restricción nueva.
+-- 2. Quitar la restricción vieja PRIMERO (si no, no deja migrar los datos).
+alter table public.verificaciones drop constraint if exists verificaciones_resultado_check;
+alter table public.verificaciones drop constraint if exists verificaciones_nivel_riesgo_check;
+
+-- 3. Recién ahora adaptar cualquier valor antiguo a los 4 niveles nuevos.
 update public.verificaciones set nivel_riesgo = 'bajo'  where nivel_riesgo = 'sin_novedad';
 update public.verificaciones set nivel_riesgo = 'medio' where nivel_riesgo = 'con_novedad';
 update public.verificaciones set nivel_riesgo = 'bajo'  where nivel_riesgo = 'no_verificable';
 
-alter table public.verificaciones drop constraint if exists verificaciones_resultado_check;
-alter table public.verificaciones drop constraint if exists verificaciones_nivel_riesgo_check;
+-- 4. Aplicar la restricción nueva.
 alter table public.verificaciones add constraint verificaciones_nivel_riesgo_check
   check (nivel_riesgo in ('bajo','medio','alto','critico'));
 alter table public.verificaciones alter column nivel_riesgo set default 'bajo';
 
--- 3. Ruta de la captura de pantalla adjunta a esa verificación (dentro del
+-- 5. Ruta de la captura de pantalla adjunta a esa verificación (dentro del
 --    bucket "documentos").
 alter table public.verificaciones add column if not exists captura_path text;
 
--- 4. Nivel de riesgo final del caso completo (lo decide el admin, aparece
+-- 6. Nivel de riesgo final del caso completo (lo decide el admin, aparece
 --    destacado en el PDF para el cliente).
 alter table public.casos add column if not exists nivel_riesgo_final text;
 alter table public.casos drop constraint if exists casos_nivel_riesgo_final_check;
 alter table public.casos add constraint casos_nivel_riesgo_final_check
   check (nivel_riesgo_final in ('bajo','medio','alto','critico'));
 
--- 5. El analista puede subir capturas de pantalla al bucket "documentos"
+-- 7. El analista puede subir capturas de pantalla al bucket "documentos"
 --    bajo la carpeta de cualquier caso existente.
 drop policy if exists "storage_insert_analista" on storage.objects;
 create policy "storage_insert_analista"
