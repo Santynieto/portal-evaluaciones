@@ -10,11 +10,17 @@ Tres roles:
 - **Evaluado** — llena el formulario y sube documentos (`formulario.html`).
 - **Analista** — revisa datos/documentos, tiene accesos directos a fuentes
   externas de verificación (Judicatura, Ministerio del Interior, Fiscalía,
-  Supercías, SUPA, Whitepages), y registra hallazgos por fuente
-  (`analista.html`). Puede marcar el caso como "en revisión" pero no
-  aprobar/rechazar.
-- **Admin** — crea casos, ve todo, toma la decisión final
-  (`admin.html`).
+  Supercías, SUPA, Whitepages — siempre se abren en pestaña nueva, la
+  pestaña del portal nunca se cierra), y por cada fuente registra un
+  **nivel de riesgo** (bajo/medio/alto/crítico), notas, y opcionalmente una
+  **captura de pantalla** (usando la API de captura del navegador — el
+  analista elige la otra pestaña abierta y el portal toma la foto y la
+  guarda, sin necesitar la Herramienta de Recortes ni subir archivos a
+  mano). Puede marcar el caso como "en revisión" pero no aprobar/rechazar.
+- **Admin** — crea casos, ve todo (incluidas las verificaciones del
+  analista), define el **nivel de riesgo final** del caso, toma la decisión
+  (aprobado/rechazado/observado), y puede **generar un PDF** con todo el
+  informe para entregar al cliente (`admin.html`).
 
 No requiere Node.js, Python ni ningún build local: es un sitio estático
 (HTML/CSS/JS) que habla directo con [Supabase](https://supabase.com)
@@ -43,9 +49,11 @@ public/            <- esto es lo que se despliega (Vercel/Netlify)
 netlify/functions/
   crear-evaluado.js   Function servidor: crea usuario+caso en un solo paso
 supabase/
-  schema.sql          Esquema completo (para una instalación nueva)
-  patch_analistas.sql Parche incremental que agrega el rol analista
-                      (correr solo si el schema.sql ya estaba cargado)
+  schema.sql               Esquema completo (para una instalación nueva)
+  patch_analistas.sql      Parche: agrega el rol analista
+  patch_riesgo_captura.sql Parche: niveles de riesgo, capturas y PDF final
+                           (correr los parches solo si el schema.sql ya
+                           estaba cargado antes de que existieran)
 ```
 
 ## Paso 1 — Crear el proyecto en Supabase
@@ -86,6 +94,10 @@ completo en el SQL Editor. Luego, igual que con el admin: crea el usuario en
 ```sql
 insert into public.analistas (user_id, nombre) values ('PEGA-AQUI-EL-UUID', 'Nombre del analista');
 ```
+
+Si tu proyecto ya tenía cargado el rol analista pero no los niveles de
+riesgo/capturas, corre además [`supabase/patch_riesgo_captura.sql`](supabase/patch_riesgo_captura.sql)
+una vez en el SQL Editor.
 
 ## Paso 4 — Conectar el sitio a tu proyecto
 

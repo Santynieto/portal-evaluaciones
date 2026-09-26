@@ -80,6 +80,7 @@ create table if not exists public.casos (
   estado text not null default 'pendiente'
     check (estado in ('pendiente','en_revision','observado','aprobado','rechazado')),
   notas_admin text,
+  nivel_riesgo_final text check (nivel_riesgo_final in ('bajo','medio','alto','critico')),
   creado_en timestamptz default now(),
   actualizado_en timestamptz default now()
 );
@@ -183,9 +184,10 @@ create table if not exists public.verificaciones (
   caso_id uuid not null references public.casos(id) on delete cascade,
   fuente text not null
     check (fuente in ('judicatura','ministerio_interior','fiscalia','supercias','supa','whitepages','redes_sociales','otro')),
-  resultado text not null default 'sin_novedad'
-    check (resultado in ('sin_novedad','con_novedad','no_verificable')),
+  nivel_riesgo text not null default 'bajo'
+    check (nivel_riesgo in ('bajo','medio','alto','critico')),
   notas text,
+  captura_path text, -- ruta dentro del bucket "documentos" a la captura de pantalla adjunta
   analista_user_id uuid references auth.users(id),
   creado_en timestamptz default now()
 );
@@ -238,6 +240,16 @@ create policy "storage_insert_propio"
       where c.id::text = (storage.foldername(name))[1]
       and c.evaluado_user_id = auth.uid()
     )
+  );
+
+-- El analista sube capturas de pantalla de verificación bajo la carpeta de
+-- cualquier caso existente (no tiene "sus propios" casos, ve todos).
+create policy "storage_insert_analista"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'documentos'
+    and public.is_analista()
+    and exists (select 1 from public.casos c where c.id::text = (storage.foldername(name))[1])
   );
 
 create policy "storage_update_propio_o_admin"

@@ -81,14 +81,21 @@ async function abrirDetalle(casoId) {
     .eq("caso_id", casoId)
     .order("creado_en", { ascending: false });
 
-  const verificacionesHtml = (verificaciones || []).map(v => `
+  const verificacionesHtml = (await Promise.all((verificaciones || []).map(async (v) => {
+    let capturaHtml = "-";
+    if (v.captura_path) {
+      const { data: signed } = await window.sb.storage.from("documentos").createSignedUrl(v.captura_path, 300);
+      capturaHtml = signed ? `<a class="doc-link" href="${signed.signedUrl}" target="_blank" rel="noopener">Ver captura ↗</a>` : "-";
+    }
+    return `
     <tr>
       <td>${fuenteNombre(v.fuente)}</td>
-      <td>${v.resultado}</td>
+      <td>${badgeHtml(v.nivel_riesgo)}</td>
       <td>${v.notas || "-"}</td>
+      <td>${capturaHtml}</td>
       <td>${new Date(v.creado_en).toLocaleString("es-EC")}</td>
-    </tr>
-  `).join("") || `<tr><td colspan="4"><em>Sin verificaciones registradas todavía.</em></td></tr>`;
+    </tr>`;
+  }))).join("") || `<tr><td colspan="5"><em>Sin verificaciones registradas todavía.</em></td></tr>`;
 
   document.getElementById("det-nombre").textContent = caso.nombre_completo;
   document.getElementById("det-contenido").innerHTML = `
@@ -116,22 +123,28 @@ async function abrirDetalle(casoId) {
       ${FUENTES_VERIFICACION.map(f => `<option value="${f.id}">${f.nombre}</option>`).join("")}
     </select>
 
-    <label for="ver-resultado">Resultado</label>
-    <select id="ver-resultado">
-      <option value="sin_novedad">Sin novedad</option>
-      <option value="con_novedad">Con novedad</option>
-      <option value="no_verificable">No se pudo verificar</option>
+    <label for="ver-riesgo">Nivel de riesgo encontrado</label>
+    <select id="ver-riesgo">
+      <option value="bajo">Bajo</option>
+      <option value="medio">Medio</option>
+      <option value="alto">Alto</option>
+      <option value="critico">Crítico</option>
     </select>
 
     <label for="ver-notas">Notas</label>
     <textarea id="ver-notas" placeholder="Detalle de lo encontrado..."></textarea>
+
+    <label>Captura de pantalla (opcional)</label>
+    <button type="button" class="secundario" id="btn-capturar">Capturar pantalla de otra pestaña</button>
+    <span id="captura-estado" style="margin-left:10px; font-size:13px; color:var(--texto-tenue);"></span>
+    <img id="captura-preview" class="oculto" style="max-width:280px; display:block; margin-top:10px; border:1px solid var(--borde); border-radius:4px;">
 
     <div class="error" id="ver-error"></div>
     <button id="btn-guardar-verificacion">Guardar verificación</button>
 
     <h3 style="margin-top:24px;">Historial de verificaciones</h3>
     <table>
-      <thead><tr><th>Fuente</th><th>Resultado</th><th>Notas</th><th>Fecha</th></tr></thead>
+      <thead><tr><th>Fuente</th><th>Riesgo</th><th>Notas</th><th>Captura</th><th>Fecha</th></tr></thead>
       <tbody>${verificacionesHtml}</tbody>
     </table>
 
@@ -141,15 +154,58 @@ async function abrirDetalle(casoId) {
     </button>
   `;
 
+  let capturaBlob = null;
+
+  document.getElementById("btn-capturar").addEventListener("click", async () => {
+    const estadoEl = document.getElementById("captura-estado");
+    estadoEl.textContent = "";
+    try {
+      estadoEl.textContent = "Elige la pestaña/ventana a capturar en el diálogo del navegador...";
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      await video.play();
+      await new Promise(r => setTimeout(r, 250)); // dejar que llegue el primer frame
+
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0);
+      stream.getTracks().forEach(t => t.stop());
+
+      capturaBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      const preview = document.getElementById("captura-preview");
+      preview.src = URL.createObjectURL(capturaBlob);
+      preview.classList.remove("oculto");
+      estadoEl.textContent = "Captura lista — se adjuntará al guardar.";
+    } catch (err) {
+      estadoEl.textContent = "No se pudo capturar: " + err.message;
+    }
+  });
+
   document.getElementById("btn-guardar-verificacion").addEventListener("click", async () => {
     const errorEl = document.getElementById("ver-error");
     errorEl.textContent = "";
     const { data: { user } } = await window.sb.auth.getUser();
+
+    let capturaPath = null;
+    if (capturaBlob) {
+      capturaPath = `${casoId}/verificaciones/${Date.now()}.png`;
+      const { error: uploadError } = await window.sb.storage
+        .from("documentos")
+        .upload(capturaPath, capturaBlob, { contentType: "image/png" });
+      if (uploadError) {
+        errorEl.textContent = "Error subiendo la captura: " + uploadError.message;
+        return;
+      }
+    }
+
     const { error } = await window.sb.from("verificaciones").insert({
       caso_id: casoId,
       fuente: document.getElementById("ver-fuente").value,
-      resultado: document.getElementById("ver-resultado").value,
+      nivel_riesgo: document.getElementById("ver-riesgo").value,
       notas: document.getElementById("ver-notas").value.trim(),
+      captura_path: capturaPath,
       analista_user_id: user.id,
     });
     if (error) {

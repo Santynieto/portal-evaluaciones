@@ -218,6 +218,13 @@ tr.clickable:hover { background: rgba(37,37,37,0.04); }
 }
 .badge.aprobado { background: var(--rojo); color: var(--blanco-humo); }
 .badge.observado { border: 1px solid var(--negro-neutro); background: transparent; color: var(--negro-neutro); }
+
+/* Niveles de riesgo: gradiente de intensidad usando solo la paleta de marca
+   (grafito → negro → rojo), sin introducir verdes/amarillos ajenos. */
+.badge.bajo { border: 1px solid var(--texto-tenue); background: transparent; color: var(--texto-tenue); }
+.badge.medio { background: var(--texto-tenue); color: var(--blanco-humo); }
+.badge.alto { background: var(--negro-neutro); color: var(--blanco-humo); }
+.badge.critico { background: var(--rojo); color: var(--blanco-humo); }
 .badge.rechazado { opacity: 0.55; }
 
 .overlay {
