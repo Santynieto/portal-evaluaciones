@@ -62,7 +62,12 @@
       }
 
       const admin = await esAdmin(data.user.id);
-      window.location.href = admin ? "admin.html" : "formulario.html";
+      if (admin) {
+        window.location.href = "admin.html";
+        return;
+      }
+      const analista = await esAnalista(data.user.id);
+      window.location.href = analista ? "analista.html" : "formulario.html";
     });
   </script>
 </body>

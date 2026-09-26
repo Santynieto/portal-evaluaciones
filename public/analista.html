@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Análisis — Defender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Staatliches&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="marca">DEFENDER <span class="separador">·</span> Panel de Análisis</h1>
+    <button class="secundario" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <main class="ancho">
+    <div class="card">
+      <h2>Casos por investigar</h2>
+      <table>
+        <thead>
+          <tr><th>Nombre</th><th>Empresa</th><th>Tipo</th><th>Estado</th><th>Enviado</th><th>Creado</th></tr>
+        </thead>
+        <tbody id="tabla-casos"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <div class="overlay oculto" id="overlay-detalle">
+    <div class="modal">
+      <h2 id="det-nombre"></h2>
+      <div id="det-contenido"></div>
+      <button class="secundario" onclick="cerrarDetalle()">Cerrar</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/analista.js"></script>
+</body>
+</html>

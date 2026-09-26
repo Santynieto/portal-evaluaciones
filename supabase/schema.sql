@@ -40,6 +40,33 @@ create policy "admins_select_propio_o_admin"
   using (auth.uid() = user_id or public.is_admin());
 
 -- ---------------------------------------------------------------------
+-- 1b. TABLA: analistas
+--    Usuarios que investigan casos (revisan documentos y fuentes externas)
+--    pero NO pueden aprobar/rechazar — eso lo decide solo el admin.
+--    insert into public.analistas (user_id) values ('<uuid del usuario>');
+-- ---------------------------------------------------------------------
+create table if not exists public.analistas (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  nombre text,
+  creado_en timestamptz default now()
+);
+
+alter table public.analistas enable row level security;
+
+create or replace function public.is_analista()
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (select 1 from public.analistas a where a.user_id = auth.uid());
+$$;
+
+create policy "analistas_select_propio_o_admin"
+  on public.analistas for select
+  using (auth.uid() = user_id or public.is_admin());
+
+-- ---------------------------------------------------------------------
 -- 2. TABLA: casos
 --    Un "caso" = una evaluación de background check para una persona.
 --    El admin crea el registro (y el usuario en Auth) al iniciar el caso.
@@ -61,11 +88,18 @@ alter table public.casos enable row level security;
 
 create policy "casos_select_propio_o_admin"
   on public.casos for select
-  using (evaluado_user_id = auth.uid() or public.is_admin());
+  using (evaluado_user_id = auth.uid() or public.is_admin() or public.is_analista());
 
 create policy "casos_update_propio_o_admin"
   on public.casos for update
   using (evaluado_user_id = auth.uid() or public.is_admin());
+
+-- El analista solo puede mover un caso a "en_revision" (marca que ya lo
+-- investigó); nunca puede dejarlo en aprobado/rechazado/observado.
+create policy "casos_update_analista_solo_en_revision"
+  on public.casos for update
+  using (public.is_analista())
+  with check (estado = 'en_revision');
 
 create policy "casos_insert_solo_admin"
   on public.casos for insert
@@ -99,6 +133,7 @@ create policy "datos_select_propio_o_admin"
   using (
     exists (select 1 from public.casos c where c.id = caso_id and c.evaluado_user_id = auth.uid())
     or public.is_admin()
+    or public.is_analista()
   );
 
 create policy "datos_insert_propio"
@@ -137,6 +172,38 @@ create trigger trg_datos_actualizado
   before update on public.datos_evaluado
   for each row execute function public.set_actualizado_en();
 
+-- ---------------------------------------------------------------------
+-- 4b. TABLA: verificaciones
+--    Un renglón por cada fuente externa que el analista revisó para un
+--    caso (Judicatura, Fiscalía, Supercías, SUPA, Ministerio del Interior,
+--    Whitepages, redes sociales, etc.), con su hallazgo y notas.
+-- ---------------------------------------------------------------------
+create table if not exists public.verificaciones (
+  id uuid primary key default gen_random_uuid(),
+  caso_id uuid not null references public.casos(id) on delete cascade,
+  fuente text not null
+    check (fuente in ('judicatura','ministerio_interior','fiscalia','supercias','supa','whitepages','redes_sociales','otro')),
+  resultado text not null default 'sin_novedad'
+    check (resultado in ('sin_novedad','con_novedad','no_verificable')),
+  notas text,
+  analista_user_id uuid references auth.users(id),
+  creado_en timestamptz default now()
+);
+
+alter table public.verificaciones enable row level security;
+
+create policy "verificaciones_select_analista_o_admin"
+  on public.verificaciones for select
+  using (public.is_analista() or public.is_admin());
+
+create policy "verificaciones_insert_analista_o_admin"
+  on public.verificaciones for insert
+  with check ((public.is_analista() or public.is_admin()) and analista_user_id = auth.uid());
+
+create policy "verificaciones_update_propio_o_admin"
+  on public.verificaciones for update
+  using (analista_user_id = auth.uid() or public.is_admin());
+
 -- =====================================================================
 -- 5. STORAGE: bucket privado "documentos"
 --    Crear el bucket manualmente en Supabase Dashboard > Storage:
@@ -153,6 +220,7 @@ create policy "storage_select_propio_o_admin"
     bucket_id = 'documentos'
     and (
       public.is_admin()
+      or public.is_analista()
       or exists (
         select 1 from public.casos c
         where c.id::text = (storage.foldername(name))[1]

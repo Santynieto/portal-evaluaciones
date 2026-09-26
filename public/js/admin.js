@@ -183,7 +183,8 @@ document.getElementById("form-nuevo-caso").addEventListener("submit", async (e) 
   if (!user) return;
   const admin = await esAdmin(user.id);
   if (!admin) {
-    window.location.href = "formulario.html";
+    const analista = await esAnalista(user.id);
+    window.location.href = analista ? "analista.html" : "formulario.html";
     return;
   }
   cargarCasos();
