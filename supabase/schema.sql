@@ -19,12 +19,12 @@ create table if not exists public.admins (
 
 alter table public.admins enable row level security;
 
--- Un admin puede ver la lista de admins (para debug); nadie más.
-create policy "admins_select_propio_o_admin"
-  on public.admins for select
-  using (auth.uid() = user_id or exists (select 1 from public.admins a where a.user_id = auth.uid()));
-
 -- Función helper: ¿el usuario actual es admin?
+-- security definer: corre con privilegios elevados y por lo tanto IGNORA las
+-- políticas RLS de "admins" en su propia consulta interna. Es imprescindible
+-- usarla (y no una subconsulta directa a "admins") en cualquier política sobre
+-- la propia tabla "admins", o Postgres cae en "infinite recursion detected in
+-- policy for relation admins" (la política se dispara a sí misma).
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -33,6 +33,11 @@ stable
 as $$
   select exists (select 1 from public.admins a where a.user_id = auth.uid());
 $$;
+
+-- Un admin puede ver la lista de admins (para debug); nadie más.
+create policy "admins_select_propio_o_admin"
+  on public.admins for select
+  using (auth.uid() = user_id or public.is_admin());
 
 -- ---------------------------------------------------------------------
 -- 2. TABLA: casos
