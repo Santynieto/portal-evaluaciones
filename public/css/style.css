@@ -1,0 +1,251 @@
+/* Paleta y tipografía: extensión Strategorisk del Manual de Marca Grupo Defender
+   (ed.01 2026, sección 11 "Color" / 21 "Tokens de marca"). Nunca usar rojo aquí:
+   Strategorisk es fondo oscuro dominante + un único acento oro por debajo del 5%. */
+:root {
+  --negro-profundo: #0B0E12; /* fondo maestro */
+  --carbon: #12151A;         /* superficies y tarjetas */
+  --grafito: #393F4F;        /* bordes y elementos secundarios */
+  --blanco-humo: #F2F2F2;    /* texto */
+  --oro: #C9A24A;            /* acento único */
+  --texto-tenue: #8A8F99;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Roboto", Arial, sans-serif;
+  background: var(--negro-profundo);
+  color: var(--blanco-humo);
+  min-height: 100vh;
+}
+
+h1, h2, h3, .display {
+  font-family: "Staatliches", "Arial Black", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+label, .etiqueta, th, .badge {
+  font-family: "Roboto Mono", Consolas, monospace;
+}
+
+header.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--grafito);
+  background: var(--carbon);
+}
+
+header.topbar h1 {
+  font-size: 19px;
+  margin: 0;
+  letter-spacing: 0.18em;
+}
+
+header.topbar .marca .separador {
+  color: var(--oro);
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+}
+
+main.ancho {
+  max-width: 1080px;
+}
+
+.card {
+  background: var(--carbon);
+  border: 1px solid var(--grafito);
+  border-top: 3px solid var(--oro);
+  border-radius: 4px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+h2 { font-size: 28px; margin-top: 0; }
+h3 {
+  font-size: 11px;
+  color: var(--texto-tenue);
+  letter-spacing: 0.18em;
+  margin-bottom: 4px;
+}
+
+label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+  margin: 14px 0 4px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="date"],
+input[type="file"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--grafito);
+  background: var(--negro-profundo);
+  color: var(--blanco-humo);
+  font-family: "Roboto", Arial, sans-serif;
+  font-size: 14px;
+}
+
+textarea { min-height: 80px; resize: vertical; }
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--oro);
+  border-radius: 4px;
+  padding: 11px 20px;
+  font-family: "Roboto", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--oro);
+  color: var(--negro-profundo);
+  margin-top: 18px;
+}
+
+button.secundario {
+  background: transparent;
+  border: 1px solid var(--grafito);
+  color: var(--blanco-humo);
+}
+
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.error {
+  color: var(--blanco-humo);
+  background: var(--grafito);
+  border-left: 3px solid var(--blanco-humo);
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+.error:empty { display: none; }
+
+.exito {
+  color: var(--negro-profundo);
+  background: var(--oro);
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+.exito:empty { display: none; }
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.checkbox-row input { margin-top: 3px; }
+.checkbox-row span {
+  font-family: "Roboto", Arial, sans-serif;
+  font-size: 13px;
+  color: var(--texto-tenue);
+  line-height: 1.4;
+}
+
+.referencia-item {
+  border: 1px solid var(--grafito);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.referencia-item button.quitar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: 1px solid var(--grafito);
+  color: var(--texto-tenue);
+  padding: 2px 8px;
+  margin: 0;
+  font-size: 11px;
+}
+
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--grafito);
+  font-size: 14px;
+}
+th {
+  color: var(--texto-tenue);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+tr.clickable { cursor: pointer; }
+tr.clickable:hover { background: rgba(242,242,242,0.04); }
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--grafito);
+  color: var(--blanco-humo);
+}
+.badge.aprobado { background: var(--oro); color: var(--negro-profundo); }
+.badge.observado { border: 1px solid var(--blanco-humo); }
+.badge.rechazado { opacity: 0.55; }
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11,14,18,0.85);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+}
+.overlay.oculto { display: none; }
+.modal {
+  background: var(--carbon);
+  border: 1px solid var(--grafito);
+  border-top: 3px solid var(--oro);
+  border-radius: 4px;
+  padding: 24px;
+  max-width: 640px;
+  width: 100%;
+}
+
+.doc-link {
+  display: inline-block;
+  margin: 4px 8px 4px 0;
+  padding: 6px 12px;
+  border: 1px solid var(--grafito);
+  border-radius: 4px;
+  color: var(--blanco-humo);
+  font-family: "Roboto", Arial, sans-serif;
+  text-decoration: none;
+  font-size: 13px;
+}
+.doc-link:hover { border-color: var(--oro); }
+
+.oculto { display: none !important; }

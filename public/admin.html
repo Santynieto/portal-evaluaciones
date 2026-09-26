@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Admin — Portal de Evaluaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Staatliches&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="marca">STRATEGO RISK <span class="separador">·</span> Panel de Revisión</h1>
+    <button class="secundario" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <main class="ancho">
+    <div class="card">
+      <h2>Nuevo caso</h2>
+      <p style="color:var(--texto-tenue); font-size:13px;">
+        Primero crea el usuario del evaluado en Supabase Dashboard &gt; Authentication &gt; Users &gt; Add user
+        (con su correo y una contraseña temporal), copia su UUID, y regístralo aquí como caso.
+      </p>
+      <form id="form-nuevo-caso">
+        <label for="nc-uuid">UUID del usuario (Auth)</label>
+        <input type="text" id="nc-uuid" placeholder="00000000-0000-0000-0000-000000000000" required>
+
+        <label for="nc-nombre">Nombre completo del evaluado</label>
+        <input type="text" id="nc-nombre" required>
+
+        <label for="nc-empresa">Empresa solicitante</label>
+        <input type="text" id="nc-empresa">
+
+        <label for="nc-tipo">Tipo de evaluación</label>
+        <select id="nc-tipo">
+          <option value="estandar">Estándar</option>
+          <option value="laboral">Laboral</option>
+          <option value="proveedor">Proveedor</option>
+          <option value="socio">Socio / Alianza</option>
+        </select>
+
+        <div class="error" id="error-nuevo-caso"></div>
+        <button type="submit">Crear caso</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Casos</h2>
+      <table>
+        <thead>
+          <tr><th>Nombre</th><th>Empresa</th><th>Tipo</th><th>Estado</th><th>Enviado</th><th>Creado</th></tr>
+        </thead>
+        <tbody id="tabla-casos"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <div class="overlay oculto" id="overlay-detalle">
+    <div class="modal">
+      <h2 id="det-nombre"></h2>
+      <div id="det-contenido"></div>
+      <button class="secundario" onclick="cerrarDetalle()">Cerrar</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

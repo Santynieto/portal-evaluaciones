@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal de Evaluaciones — Stratego Risk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Staatliches&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="marca">STRATEGO RISK <span class="separador">·</span> Portal de Evaluaciones</h1>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Iniciar sesión</h2>
+      <p style="color:var(--texto-tenue); font-size:14px;">
+        Ingresa con el usuario y contraseña que te fueron entregados por el equipo Defender
+        para completar tu proceso de evaluación.
+      </p>
+
+      <form id="form-login">
+        <label for="email">Correo electrónico</label>
+        <input type="email" id="email" required autocomplete="username">
+
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" required autocomplete="current-password">
+
+        <div class="error" id="error-login"></div>
+        <button type="submit" id="btn-login">Ingresar</button>
+      </form>
+    </div>
+
+    <p style="color:var(--texto-tenue); font-size:12px; font-family:'Roboto',Arial,sans-serif;">
+      Tus datos son tratados conforme a la Ley Orgánica de Protección de Datos Personales (LOPDP) del Ecuador.
+      Si tienes problemas para ingresar, contacta a quien te invitó a este proceso.
+    </p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script>
+    document.getElementById("form-login").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btn-login");
+      const errorEl = document.getElementById("error-login");
+      errorEl.textContent = "";
+      btn.disabled = true;
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      const { data, error } = await window.sb.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errorEl.textContent = "Correo o contraseña incorrectos.";
+        btn.disabled = false;
+        return;
+      }
+
+      const admin = await esAdmin(data.user.id);
+      window.location.href = admin ? "admin.html" : "formulario.html";
+    });
+  </script>
+</body>
+</html>

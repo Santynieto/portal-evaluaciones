@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Evaluación — Stratego Risk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Staatliches&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="marca">STRATEGO RISK <span class="separador">·</span> Mi Evaluación</h1>
+    <button class="secundario" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <main id="contenido" class="oculto">
+    <div class="card" id="card-estado">
+      <h2 id="titulo-caso">Cargando...</h2>
+      <p style="color:var(--texto-tenue); font-size:14px;">
+        Estado actual: <span class="badge" id="badge-estado"></span>
+      </p>
+      <p id="nota-solo-lectura" class="oculto" style="color:var(--oro); font-size:13px; font-family:'Roboto',Arial,sans-serif;">
+        Este formulario ya fue enviado y está en revisión. Si necesitas corregir algo, contacta al equipo Defender.
+      </p>
+    </div>
+
+    <form id="form-evaluado">
+      <div class="card">
+        <h3>Datos personales</h3>
+        <label for="cedula">Cédula / Pasaporte</label>
+        <input type="text" id="cedula" required>
+
+        <label for="fecha_nacimiento">Fecha de nacimiento</label>
+        <input type="date" id="fecha_nacimiento" required>
+
+        <label for="direccion">Dirección domiciliaria</label>
+        <input type="text" id="direccion" required>
+
+        <label for="telefono">Teléfono</label>
+        <input type="tel" id="telefono" required>
+
+        <label for="email_contacto">Correo de contacto</label>
+        <input type="email" id="email_contacto" required>
+
+        <label for="cargo_puesto">Cargo / puesto al que aplica (si corresponde)</label>
+        <input type="text" id="cargo_puesto">
+      </div>
+
+      <div class="card">
+        <h3>Documentos</h3>
+        <label for="doc_cedula">Cédula o pasaporte (PDF o imagen)</label>
+        <input type="file" id="doc_cedula" accept=".pdf,.jpg,.jpeg,.png">
+        <div class="exito oculto" id="doc_cedula_ok">Documento ya cargado ✓</div>
+
+        <label for="doc_cv">Hoja de vida (PDF)</label>
+        <input type="file" id="doc_cv" accept=".pdf,.doc,.docx">
+        <div class="exito oculto" id="doc_cv_ok">Documento ya cargado ✓</div>
+      </div>
+
+      <div class="card">
+        <h3>Referencias</h3>
+        <div id="lista-referencias"></div>
+        <button type="button" class="secundario" id="btn-agregar-ref">+ Agregar referencia</button>
+      </div>
+
+      <div class="card">
+        <h3>Consentimiento y declaración</h3>
+        <div class="checkbox-row">
+          <input type="checkbox" id="consentimiento_lopdp" required>
+          <span>
+            Autorizo expresamente a Stratego Risk / Defender78 a recopilar, almacenar y tratar mis datos
+            personales y documentos aquí proporcionados, con la finalidad exclusiva de realizar el proceso
+            de verificación de antecedentes (background check / due diligence) solicitado, conforme a la
+            Ley Orgánica de Protección de Datos Personales (LOPDP) del Ecuador.
+          </span>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="declaracion_veracidad" required>
+          <span>Declaro que toda la información y documentación proporcionada en este formulario es verídica.</span>
+        </div>
+      </div>
+
+      <div class="error" id="error-form"></div>
+      <div class="exito" id="exito-form"></div>
+      <button type="submit" id="btn-enviar">Enviar evaluación</button>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/formulario.js"></script>
+</body>
+</html>
