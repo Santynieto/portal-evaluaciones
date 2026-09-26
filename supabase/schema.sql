@@ -175,9 +175,10 @@ create trigger trg_datos_actualizado
 
 -- ---------------------------------------------------------------------
 -- 4b. TABLA: verificaciones
---    Un renglón por cada fuente externa que el analista revisó para un
---    caso (Judicatura, Fiscalía, Supercías, SUPA, Ministerio del Interior,
---    Whitepages, redes sociales, etc.), con su hallazgo y notas.
+--    Una fila por CADA FASE (fuente) de la verificación estándar, por
+--    caso: identidad/whitepages, SUPA, Fiscalía, Ministerio del Interior,
+--    Judicatura, entorno web. Es un estado por fase (editable), no un log
+--    — de ahí el unique (caso_id, fuente).
 -- ---------------------------------------------------------------------
 create table if not exists public.verificaciones (
   id uuid primary key default gen_random_uuid(),
@@ -189,8 +190,15 @@ create table if not exists public.verificaciones (
   notas text,
   captura_path text, -- ruta dentro del bucket "documentos" a la captura de pantalla adjunta
   analista_user_id uuid references auth.users(id),
-  creado_en timestamptz default now()
+  creado_en timestamptz default now(),
+  actualizado_en timestamptz default now(),
+  unique (caso_id, fuente)
 );
+
+drop trigger if exists trg_verificaciones_actualizado on public.verificaciones;
+create trigger trg_verificaciones_actualizado
+  before update on public.verificaciones
+  for each row execute function public.set_actualizado_en();
 
 alter table public.verificaciones enable row level security;
 
@@ -202,9 +210,11 @@ create policy "verificaciones_insert_analista_o_admin"
   on public.verificaciones for insert
   with check ((public.is_analista() or public.is_admin()) and analista_user_id = auth.uid());
 
-create policy "verificaciones_update_propio_o_admin"
+-- Cualquier analista puede seguir/editar una fase ya iniciada por otro
+-- (no hay "casos asignados" a un analista en particular).
+create policy "verificaciones_update_analista_o_admin"
   on public.verificaciones for update
-  using (analista_user_id = auth.uid() or public.is_admin());
+  using (public.is_analista() or public.is_admin());
 
 -- =====================================================================
 -- 5. STORAGE: bucket privado "documentos"

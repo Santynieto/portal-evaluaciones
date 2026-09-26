@@ -8,15 +8,19 @@ administración.
 
 Tres roles:
 - **Evaluado** — llena el formulario y sube documentos (`formulario.html`).
-- **Analista** — revisa datos/documentos, tiene accesos directos a fuentes
-  externas de verificación (Judicatura, Ministerio del Interior, Fiscalía,
-  Supercías, SUPA, Whitepages — siempre se abren en pestaña nueva, la
-  pestaña del portal nunca se cierra), y por cada fuente registra un
-  **nivel de riesgo** (bajo/medio/alto/crítico), notas, y opcionalmente una
-  **captura de pantalla** (usando la API de captura del navegador — el
-  analista elige la otra pestaña abierta y el portal toma la foto y la
-  guarda, sin necesitar la Herramienta de Recortes ni subir archivos a
-  mano). Puede marcar el caso como "en revisión" pero no aprobar/rechazar.
+- **Analista** — investiga el caso en **6 fases fijas**, en orden: (1)
+  Identidad — ve la cédula que cargó el evaluado + enlace a Whitepages,
+  (2) SUPA, (3) Fiscalía, (4) Ministerio del Interior, (5) Consejo de la
+  Judicatura, (6) Entorno web. Cada fase tiene su propio enlace directo
+  (se abre en pestaña nueva, la pestaña del portal nunca se cierra ni se
+  pierde), su **nivel de riesgo** (bajo/medio/alto/crítico), sus notas, y
+  opcionalmente una **captura de pantalla** (el analista elige la otra
+  pestaña abierta y el portal toma la foto y la guarda — sin Herramienta
+  de Recortes ni subir archivos a mano). Cada fase es editable/reanudable
+  (no es un historial que se acumula, es un estado por fase). El portal
+  calcula el **riesgo consolidado** del caso como el más alto entre las 6
+  fases. El analista puede marcar el caso como "en revisión" pero no
+  aprobar/rechazar.
 - **Admin** — crea casos, ve todo (incluidas las verificaciones del
   analista), define el **nivel de riesgo final** del caso, toma la decisión
   (aprobado/rechazado/observado), y puede **generar un PDF** con todo el
@@ -52,6 +56,7 @@ supabase/
   schema.sql               Esquema completo (para una instalación nueva)
   patch_analistas.sql      Parche: agrega el rol analista
   patch_riesgo_captura.sql Parche: niveles de riesgo, capturas y PDF final
+  patch_fases.sql          Parche: una fila por caso+fuente (no historial)
                            (correr los parches solo si el schema.sql ya
                            estaba cargado antes de que existieran)
 ```

@@ -41,11 +41,6 @@ async function cargarCasos() {
   }
 }
 
-function fuenteNombre(id) {
-  const f = FUENTES_VERIFICACION.find(f => f.id === id);
-  return f ? f.nombre : id;
-}
-
 async function abrirDetalle(casoId) {
   const caso = CASOS.find(c => c.id === casoId);
   const { data: datos } = await window.sb
@@ -73,10 +68,17 @@ async function abrirDetalle(casoId) {
   const { data: verificaciones } = await window.sb
     .from("verificaciones")
     .select("*")
-    .eq("caso_id", casoId)
-    .order("creado_en", { ascending: false });
+    .eq("caso_id", casoId);
 
-  const verificacionesHtml = (await Promise.all((verificaciones || []).map(async (v) => {
+  const porFuente = {};
+  for (const v of verificaciones || []) porFuente[v.fuente] = v;
+  const riesgoConsolidado = calcularRiesgoConsolidado(porFuente);
+
+  const verificacionesHtml = (await Promise.all(FASES_VERIFICACION.map(async (fase) => {
+    const v = porFuente[fase.fuente];
+    if (!v) {
+      return `<tr><td>Fase ${fase.numero} · ${fase.titulo}</td><td colspan="4"><em>Sin evaluar todavía.</em></td></tr>`;
+    }
     let capturaHtml = "-";
     if (v.captura_path) {
       const { data: signed } = await window.sb.storage.from("documentos").createSignedUrl(v.captura_path, 300);
@@ -84,13 +86,13 @@ async function abrirDetalle(casoId) {
     }
     return `
     <tr>
-      <td>${fuenteNombre(v.fuente)}</td>
+      <td>Fase ${fase.numero} · ${fase.titulo}</td>
       <td><span class="badge ${v.nivel_riesgo}">${v.nivel_riesgo}</span></td>
       <td>${v.notas || "-"}</td>
       <td>${capturaHtml}</td>
-      <td>${new Date(v.creado_en).toLocaleString("es-EC")}</td>
+      <td>${new Date(v.actualizado_en || v.creado_en).toLocaleString("es-EC")}</td>
     </tr>`;
-  }))).join("") || `<tr><td colspan="5"><em>El analista aún no registró verificaciones.</em></td></tr>`;
+  }))).join("");
 
   document.getElementById("det-nombre").textContent = caso.nombre_completo;
   document.getElementById("det-contenido").innerHTML = `
@@ -112,9 +114,10 @@ async function abrirDetalle(casoId) {
     <h3>Documentos</h3>
     <div>${enlacesHtml}</div>
 
-    <h3>Verificaciones del analista</h3>
+    <h3>Verificación por fases (analista)</h3>
+    <p>Riesgo consolidado: ${riesgoConsolidado ? `<span class="badge ${riesgoConsolidado}">${riesgoConsolidado}</span>` : "<em>Sin fases evaluadas todavía.</em>"}</p>
     <table>
-      <thead><tr><th>Fuente</th><th>Riesgo</th><th>Notas</th><th>Captura</th><th>Fecha</th></tr></thead>
+      <thead><tr><th>Fase</th><th>Riesgo</th><th>Notas</th><th>Captura</th><th>Fecha</th></tr></thead>
       <tbody>${verificacionesHtml}</tbody>
     </table>
 
@@ -128,7 +131,10 @@ async function abrirDetalle(casoId) {
       <option value="rechazado">Rechazado</option>
     </select>
 
-    <label for="det-riesgo-final">Nivel de riesgo final</label>
+    <label for="det-riesgo-final">
+      Nivel de riesgo final
+      ${riesgoConsolidado ? ` — sugerido según las fases: ${riesgoConsolidado}` : ""}
+    </label>
     <select id="det-riesgo-final">
       <option value="">Sin definir</option>
       <option value="bajo">Bajo</option>
@@ -146,7 +152,7 @@ async function abrirDetalle(casoId) {
   `;
 
   document.getElementById("det-estado").value = caso.estado;
-  document.getElementById("det-riesgo-final").value = caso.nivel_riesgo_final || "";
+  document.getElementById("det-riesgo-final").value = caso.nivel_riesgo_final || riesgoConsolidado || "";
 
   document.getElementById("det-guardar").addEventListener("click", async () => {
     const nuevoEstado = document.getElementById("det-estado").value;
@@ -166,7 +172,8 @@ async function abrirDetalle(casoId) {
   });
 
   document.getElementById("det-generar-pdf").addEventListener("click", () => {
-    generarInformePDF(caso, datos, verificaciones || []);
+    const riesgoFinalActual = document.getElementById("det-riesgo-final").value || riesgoConsolidado;
+    generarInformePDF({ ...caso, nivel_riesgo_final: riesgoFinalActual }, datos, porFuente);
   });
 
   document.getElementById("overlay-detalle").classList.remove("oculto");
@@ -189,7 +196,7 @@ async function blobUrlADataUrl(url) {
 
 const RIESGO_LABEL = { bajo: "BAJO", medio: "MEDIO", alto: "ALTO", critico: "CRÍTICO" };
 
-async function generarInformePDF(caso, datos, verificaciones) {
+async function generarInformePDF(caso, datos, porFuente) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const margenX = 15;
@@ -248,28 +255,29 @@ async function generarInformePDF(caso, datos, verificaciones) {
   saltoDePagina(15);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.text("Verificaciones realizadas", margenX, y);
+  doc.text("Verificación por fases", margenX, y);
   y += 8;
   doc.setFontSize(11);
 
-  if (verificaciones.length === 0) {
-    doc.setFont("helvetica", "normal");
-    doc.text("Sin verificaciones registradas.", margenX, y);
-    y += 8;
-  }
-
-  for (const v of verificaciones) {
+  for (const fase of FASES_VERIFICACION) {
+    const v = porFuente[fase.fuente];
     saltoDePagina(30);
     doc.setFont("helvetica", "bold");
-    doc.text(`${fuenteNombre(v.fuente)} — riesgo ${RIESGO_LABEL[v.nivel_riesgo] || v.nivel_riesgo}`, margenX, y);
+    doc.text(
+      `Fase ${fase.numero} · ${fase.titulo}` + (v ? ` — riesgo ${RIESGO_LABEL[v.nivel_riesgo] || v.nivel_riesgo}` : " — sin evaluar"),
+      margenX, y
+    );
     y += 6;
     doc.setFont("helvetica", "normal");
+
+    if (!v) { y += 4; continue; }
+
     const notasLineas = doc.splitTextToSize(v.notas || "Sin notas.", anchoUtil);
     doc.text(notasLineas, margenX, y);
     y += notasLineas.length * 5 + 2;
     doc.setFontSize(9);
     doc.setTextColor(120);
-    doc.text(new Date(v.creado_en).toLocaleString("es-EC"), margenX, y);
+    doc.text(new Date(v.actualizado_en || v.creado_en).toLocaleString("es-EC"), margenX, y);
     doc.setTextColor(0);
     doc.setFontSize(11);
     y += 6;

@@ -1,7 +1,7 @@
 let CASOS = [];
 
-function badgeHtml(estado) {
-  return `<span class="badge ${estado}">${estado}</span>`;
+function badgeHtml(valor) {
+  return `<span class="badge ${valor}">${valor}</span>`;
 }
 
 async function cargarCasos() {
@@ -41,9 +41,18 @@ async function cargarCasos() {
   }
 }
 
-function fuenteNombre(id) {
-  const f = FUENTES_VERIFICACION.find(f => f.id === id);
-  return f ? f.nombre : id;
+function fuenteInfo(id) {
+  return FUENTES_VERIFICACION.find(f => f.id === id) || { nombre: id, url: null };
+}
+
+async function enlaceDocumento(casoId, prefijo) {
+  const { data: archivos } = await window.sb.storage.from("documentos").list(casoId);
+  const archivo = (archivos || []).find(f => f.name.startsWith(prefijo));
+  if (!archivo) return null;
+  const { data: signed } = await window.sb.storage
+    .from("documentos")
+    .createSignedUrl(`${casoId}/${archivo.name}`, 300);
+  return signed ? signed.signedUrl : null;
 }
 
 async function abrirDetalle(casoId) {
@@ -70,32 +79,58 @@ async function abrirDetalle(casoId) {
     `<li>${r.nombre} — ${r.relacion} — ${r.telefono} — ${r.email}</li>`
   ).join("") || "<li>Sin referencias registradas.</li>";
 
-  const fuentesHtml = FUENTES_VERIFICACION
-    .filter(f => f.url)
-    .map(f => `<a class="doc-link" href="${f.url}" target="_blank" rel="noopener">${f.nombre} ↗</a>`)
-    .join("");
+  const cedulaUrl = await enlaceDocumento(casoId, "cedula");
 
   const { data: verificaciones } = await window.sb
     .from("verificaciones")
     .select("*")
-    .eq("caso_id", casoId)
-    .order("creado_en", { ascending: false });
+    .eq("caso_id", casoId);
 
-  const verificacionesHtml = (await Promise.all((verificaciones || []).map(async (v) => {
-    let capturaHtml = "-";
-    if (v.captura_path) {
-      const { data: signed } = await window.sb.storage.from("documentos").createSignedUrl(v.captura_path, 300);
-      capturaHtml = signed ? `<a class="doc-link" href="${signed.signedUrl}" target="_blank" rel="noopener">Ver captura ↗</a>` : "-";
+  const porFuente = {};
+  for (const v of verificaciones || []) porFuente[v.fuente] = v;
+
+  const riesgoConsolidado = calcularRiesgoConsolidado(porFuente);
+
+  const fasesHtml = await Promise.all(FASES_VERIFICACION.map(async (fase) => {
+    const existente = porFuente[fase.fuente];
+    const info = fuenteInfo(fase.fuente);
+    let capturaActualHtml = "";
+    if (existente?.captura_path) {
+      const { data: signed } = await window.sb.storage.from("documentos").createSignedUrl(existente.captura_path, 300);
+      if (signed) capturaActualHtml = `<a class="doc-link" href="${signed.signedUrl}" target="_blank" rel="noopener">Ver captura guardada ↗</a>`;
     }
+
     return `
-    <tr>
-      <td>${fuenteNombre(v.fuente)}</td>
-      <td>${badgeHtml(v.nivel_riesgo)}</td>
-      <td>${v.notas || "-"}</td>
-      <td>${capturaHtml}</td>
-      <td>${new Date(v.creado_en).toLocaleString("es-EC")}</td>
-    </tr>`;
-  }))).join("") || `<tr><td colspan="5"><em>Sin verificaciones registradas todavía.</em></td></tr>`;
+    <div class="card" data-fase="${fase.fuente}">
+      <h3>Fase ${fase.numero} · ${fase.titulo} ${existente ? badgeHtml(existente.nivel_riesgo) : ""}</h3>
+      ${fase.descripcion ? `<p style="font-size:13px; color:var(--texto-tenue);">${fase.descripcion}</p>` : ""}
+      ${fase.fuente === "whitepages" ? `
+        <p>
+          ${cedulaUrl ? `<a class="doc-link" href="${cedulaUrl}" target="_blank" rel="noopener">Ver cédula cargada por el evaluado ↗</a>` : "<em>El evaluado aún no cargó su cédula.</em>"}
+        </p>
+      ` : ""}
+      ${info.url ? `<p><a class="doc-link" href="${info.url}" target="_blank" rel="noopener">Abrir ${info.nombre} ↗</a></p>` : ""}
+
+      <label>Nivel de riesgo</label>
+      <select class="fase-riesgo">
+        <option value="bajo">Bajo</option>
+        <option value="medio">Medio</option>
+        <option value="alto">Alto</option>
+        <option value="critico">Crítico</option>
+      </select>
+
+      <label>Notas</label>
+      <textarea class="fase-notas" placeholder="Detalle de lo encontrado...">${existente?.notas || ""}</textarea>
+
+      <label>Captura de pantalla (opcional)</label>
+      <button type="button" class="secundario fase-btn-capturar">Capturar pantalla de otra pestaña</button>
+      <span class="fase-captura-estado" style="margin-left:10px; font-size:13px; color:var(--texto-tenue);">${capturaActualHtml}</span>
+      <img class="fase-captura-preview oculto" style="max-width:280px; display:block; margin-top:10px; border:1px solid var(--borde); border-radius:4px;">
+
+      <div class="error fase-error"></div>
+      <button class="fase-btn-guardar">Guardar fase ${fase.numero}</button>
+    </div>`;
+  }));
 
   document.getElementById("det-nombre").textContent = caso.nombre_completo;
   document.getElementById("det-contenido").innerHTML = `
@@ -114,39 +149,11 @@ async function abrirDetalle(casoId) {
     <h3>Documentos</h3>
     <div>${enlacesHtml}</div>
 
-    <h3>Fuentes externas — acceso directo</h3>
-    <div>${fuentesHtml}</div>
-
-    <h3>Registrar verificación</h3>
-    <label for="ver-fuente">Fuente revisada</label>
-    <select id="ver-fuente">
-      ${FUENTES_VERIFICACION.map(f => `<option value="${f.id}">${f.nombre}</option>`).join("")}
-    </select>
-
-    <label for="ver-riesgo">Nivel de riesgo encontrado</label>
-    <select id="ver-riesgo">
-      <option value="bajo">Bajo</option>
-      <option value="medio">Medio</option>
-      <option value="alto">Alto</option>
-      <option value="critico">Crítico</option>
-    </select>
-
-    <label for="ver-notas">Notas</label>
-    <textarea id="ver-notas" placeholder="Detalle de lo encontrado..."></textarea>
-
-    <label>Captura de pantalla (opcional)</label>
-    <button type="button" class="secundario" id="btn-capturar">Capturar pantalla de otra pestaña</button>
-    <span id="captura-estado" style="margin-left:10px; font-size:13px; color:var(--texto-tenue);"></span>
-    <img id="captura-preview" class="oculto" style="max-width:280px; display:block; margin-top:10px; border:1px solid var(--borde); border-radius:4px;">
-
-    <div class="error" id="ver-error"></div>
-    <button id="btn-guardar-verificacion">Guardar verificación</button>
-
-    <h3 style="margin-top:24px;">Historial de verificaciones</h3>
-    <table>
-      <thead><tr><th>Fuente</th><th>Riesgo</th><th>Notas</th><th>Captura</th><th>Fecha</th></tr></thead>
-      <tbody>${verificacionesHtml}</tbody>
-    </table>
+    <h2 style="margin-top:24px;">Verificación por fases</h2>
+    <p>
+      Riesgo consolidado: ${riesgoConsolidado ? badgeHtml(riesgoConsolidado) : "<em>Sin fases evaluadas todavía.</em>"}
+    </p>
+    ${fasesHtml.join("")}
 
     <div class="error" id="estado-error"></div>
     <button id="btn-marcar-revision" ${caso.estado === "en_revision" ? "disabled" : ""}>
@@ -154,65 +161,77 @@ async function abrirDetalle(casoId) {
     </button>
   `;
 
-  let capturaBlob = null;
-
-  document.getElementById("btn-capturar").addEventListener("click", async () => {
-    const estadoEl = document.getElementById("captura-estado");
-    estadoEl.textContent = "";
-    try {
-      estadoEl.textContent = "Elige la pestaña/ventana a capturar en el diálogo del navegador...";
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      await video.play();
-      await new Promise(r => setTimeout(r, 250)); // dejar que llegue el primer frame
-
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext("2d").drawImage(video, 0, 0);
-      stream.getTracks().forEach(t => t.stop());
-
-      capturaBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      const preview = document.getElementById("captura-preview");
-      preview.src = URL.createObjectURL(capturaBlob);
-      preview.classList.remove("oculto");
-      estadoEl.textContent = "Captura lista — se adjuntará al guardar.";
-    } catch (err) {
-      estadoEl.textContent = "No se pudo capturar: " + err.message;
-    }
+  // Precargar el select de riesgo de cada fase con su valor guardado (o "bajo" por defecto).
+  document.querySelectorAll("[data-fase]").forEach((card) => {
+    const fuente = card.dataset.fase;
+    const existente = porFuente[fuente];
+    card.querySelector(".fase-riesgo").value = existente?.nivel_riesgo || "bajo";
   });
 
-  document.getElementById("btn-guardar-verificacion").addEventListener("click", async () => {
-    const errorEl = document.getElementById("ver-error");
-    errorEl.textContent = "";
-    const { data: { user } } = await window.sb.auth.getUser();
+  // Un listener por fase: captura y guardado.
+  document.querySelectorAll("[data-fase]").forEach((card) => {
+    const fuente = card.dataset.fase;
+    let capturaBlob = null;
 
-    let capturaPath = null;
-    if (capturaBlob) {
-      capturaPath = `${casoId}/verificaciones/${Date.now()}.png`;
-      const { error: uploadError } = await window.sb.storage
-        .from("documentos")
-        .upload(capturaPath, capturaBlob, { contentType: "image/png" });
-      if (uploadError) {
-        errorEl.textContent = "Error subiendo la captura: " + uploadError.message;
+    card.querySelector(".fase-btn-capturar").addEventListener("click", async () => {
+      const estadoEl = card.querySelector(".fase-captura-estado");
+      estadoEl.textContent = "";
+      try {
+        estadoEl.textContent = "Elige la pestaña/ventana a capturar...";
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const video = document.createElement("video");
+        video.srcObject = stream;
+        await video.play();
+        await new Promise(r => setTimeout(r, 250));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d").drawImage(video, 0, 0);
+        stream.getTracks().forEach(t => t.stop());
+
+        capturaBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+        const preview = card.querySelector(".fase-captura-preview");
+        preview.src = URL.createObjectURL(capturaBlob);
+        preview.classList.remove("oculto");
+        estadoEl.textContent = "Captura nueva lista — se adjuntará al guardar.";
+      } catch (err) {
+        estadoEl.textContent = "No se pudo capturar: " + err.message;
+      }
+    });
+
+    card.querySelector(".fase-btn-guardar").addEventListener("click", async () => {
+      const errorEl = card.querySelector(".fase-error");
+      errorEl.textContent = "";
+      const { data: { user } } = await window.sb.auth.getUser();
+
+      let capturaPath = porFuente[fuente]?.captura_path || null;
+      if (capturaBlob) {
+        capturaPath = `${casoId}/verificaciones/${fuente}_${Date.now()}.png`;
+        const { error: uploadError } = await window.sb.storage
+          .from("documentos")
+          .upload(capturaPath, capturaBlob, { contentType: "image/png" });
+        if (uploadError) {
+          errorEl.textContent = "Error subiendo la captura: " + uploadError.message;
+          return;
+        }
+      }
+
+      const { error } = await window.sb.from("verificaciones").upsert({
+        caso_id: casoId,
+        fuente,
+        nivel_riesgo: card.querySelector(".fase-riesgo").value,
+        notas: card.querySelector(".fase-notas").value.trim(),
+        captura_path: capturaPath,
+        analista_user_id: user.id,
+      }, { onConflict: "caso_id,fuente" });
+
+      if (error) {
+        errorEl.textContent = error.message;
         return;
       }
-    }
-
-    const { error } = await window.sb.from("verificaciones").insert({
-      caso_id: casoId,
-      fuente: document.getElementById("ver-fuente").value,
-      nivel_riesgo: document.getElementById("ver-riesgo").value,
-      notas: document.getElementById("ver-notas").value.trim(),
-      captura_path: capturaPath,
-      analista_user_id: user.id,
+      abrirDetalle(casoId);
     });
-    if (error) {
-      errorEl.textContent = error.message;
-      return;
-    }
-    abrirDetalle(casoId);
   });
 
   document.getElementById("btn-marcar-revision").addEventListener("click", async () => {

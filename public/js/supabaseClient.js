@@ -49,6 +49,34 @@ const FUENTES_VERIFICACION = [
   { id: "otro", nombre: "Otra fuente", url: null },
 ];
 
+// Fases fijas de la verificación estándar, en orden. Cada fase = una fuente.
+const FASES_VERIFICACION = [
+  { fuente: "whitepages", numero: 1, titulo: "Identidad de la persona",
+    descripcion: "Revisa la cédula que cargó el evaluado y contrasta sus datos en Whitepages." },
+  { fuente: "supa", numero: 2, titulo: "SUPA" },
+  { fuente: "fiscalia", numero: 3, titulo: "Fiscalía" },
+  { fuente: "ministerio_interior", numero: 4, titulo: "Ministerio del Interior" },
+  { fuente: "judicatura", numero: 5, titulo: "Consejo de la Judicatura" },
+  { fuente: "redes_sociales", numero: 6, titulo: "Entorno web" },
+];
+
+const NIVEL_RIESGO_ORDEN = { bajo: 1, medio: 2, alto: 3, critico: 4 };
+const NIVEL_RIESGO_LABEL = { bajo: "Bajo", medio: "Medio", alto: "Alto", critico: "Crítico" };
+
+// Riesgo consolidado = el nivel más alto entre las fases ya evaluadas.
+// Devuelve null si ninguna fase tiene todavía un registro.
+function calcularRiesgoConsolidado(verificacionesPorFuente) {
+  let peor = null;
+  for (const fase of FASES_VERIFICACION) {
+    const v = verificacionesPorFuente[fase.fuente];
+    if (!v) continue;
+    if (peor === null || NIVEL_RIESGO_ORDEN[v.nivel_riesgo] > NIVEL_RIESGO_ORDEN[peor]) {
+      peor = v.nivel_riesgo;
+    }
+  }
+  return peor;
+}
+
 async function cerrarSesion() {
   await window.sb.auth.signOut();
   window.location.href = "index.html";
