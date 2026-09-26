@@ -162,6 +162,9 @@ async function abrirDetalle(casoId) {
 
       <label>Captura de pantalla (opcional)</label>
       <button type="button" class="secundario fase-btn-capturar">Capturar pantalla de otra pestaña</button>
+      <div class="fase-zona-pegar" tabindex="0" style="display:inline-block; margin-left:10px; padding:11px 16px; border:1px dashed var(--borde); border-radius:4px; font-size:13px; color:var(--texto-tenue); cursor:text;">
+        Haz clic aquí y pega con Ctrl+V (usa Win+Shift+S para recortar primero)
+      </div>
       <span class="fase-captura-estado" style="margin-left:10px; font-size:13px; color:var(--texto-tenue);">${capturaActualHtml}</span>
       <img class="fase-captura-preview oculto" style="max-width:280px; display:block; margin-top:10px; border:1px solid var(--borde); border-radius:4px;">
 
@@ -287,6 +290,20 @@ async function abrirDetalle(casoId) {
       } catch (err) {
         estadoEl.textContent = "No se pudo capturar: " + err.message;
       }
+    });
+
+    card.querySelector(".fase-zona-pegar").addEventListener("paste", (e) => {
+      const estadoEl = card.querySelector(".fase-captura-estado");
+      const item = Array.from(e.clipboardData.items || []).find(i => i.type.startsWith("image/"));
+      if (!item) {
+        estadoEl.textContent = "No se encontró ninguna imagen en el portapapeles.";
+        return;
+      }
+      capturaBlob = item.getAsFile();
+      const preview = card.querySelector(".fase-captura-preview");
+      preview.src = URL.createObjectURL(capturaBlob);
+      preview.classList.remove("oculto");
+      estadoEl.textContent = "Captura pegada lista — se adjuntará al guardar.";
     });
 
     card.querySelector(".fase-btn-guardar").addEventListener("click", async () => {

@@ -44,6 +44,18 @@ header.topbar {
   background: var(--negro-neutro);
 }
 
+header.topbar h1.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+header.topbar .logo-marca {
+  height: 18px;
+  width: auto;
+  display: block;
+}
+
 header.topbar h1 {
   font-size: 19px;
   margin: 0;
