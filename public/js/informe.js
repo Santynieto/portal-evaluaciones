@@ -37,7 +37,9 @@ function cargarImagen(dataUrl) {
   });
 }
 
-async function generarInformePDF(caso, datos, porFuente) {
+// Construye el documento jsPDF (sin guardarlo ni enviarlo) — reutilizado
+// tanto para descargar como para adjuntar en un correo.
+async function construirInformePDF(caso, datos, porFuente) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const margenX = 16;
@@ -246,17 +248,57 @@ async function generarInformePDF(caso, datos, porFuente) {
     doc.text(`Página ${i} de ${totalPaginas}`, anchoPagina - margenX, 291, { align: "right" });
   }
 
-  doc.save(`Informe_${caso.nombre_completo.replace(/\s+/g, "_")}.pdf`);
+  return doc;
 }
 
-// Trae caso + datos_evaluado + verificaciones y genera el PDF de una vez
-// (usado desde el botón de la tabla de casos, sin abrir el detalle).
-async function generarInformePDFPorCasoId(casoId) {
+function nombreArchivoInforme(caso) {
+  return `Informe_${caso.nombre_completo.replace(/\s+/g, "_")}.pdf`;
+}
+
+async function generarInformePDF(caso, datos, porFuente) {
+  const doc = await construirInformePDF(caso, datos, porFuente);
+  doc.save(nombreArchivoInforme(caso));
+}
+
+// Trae caso + datos_evaluado + verificaciones (usado tanto para descargar
+// como para enviar por correo, sin necesitar abrir el detalle del caso).
+async function cargarDatosInforme(casoId) {
   const { data: caso } = await window.sb.from("casos").select("*").eq("id", casoId).single();
   const { data: datos } = await window.sb.from("datos_evaluado").select("*").eq("caso_id", casoId).maybeSingle();
   const { data: verificaciones } = await window.sb.from("verificaciones").select("*").eq("caso_id", casoId);
   const porFuente = {};
   for (const v of verificaciones || []) porFuente[v.fuente] = v;
   const riesgoConsolidado = calcularRiesgoConsolidado(porFuente);
-  await generarInformePDF({ ...caso, nivel_riesgo_final: caso.nivel_riesgo_final || riesgoConsolidado }, datos, porFuente);
+  return { caso: { ...caso, nivel_riesgo_final: caso.nivel_riesgo_final || riesgoConsolidado }, datos, porFuente };
+}
+
+async function generarInformePDFPorCasoId(casoId) {
+  const { caso, datos, porFuente } = await cargarDatosInforme(casoId);
+  await generarInformePDF(caso, datos, porFuente);
+}
+
+// Construye el PDF y lo envía por correo (con adjunto) vía la función servidor.
+async function enviarInformePorCorreo(caso, datos, porFuente, destinatario) {
+  const doc = await construirInformePDF(caso, datos, porFuente);
+  const pdfBase64 = doc.output("datauristring").split(",")[1];
+
+  const { data: { session } } = await window.sb.auth.getSession();
+  const res = await fetch("/.netlify/functions/enviar-informe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({
+      destinatario,
+      nombreCaso: caso.nombre_completo,
+      nombreArchivo: nombreArchivoInforme(caso),
+      pdfBase64,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Error enviando el informe.");
+  return data;
+}
+
+async function enviarInformePorCasoId(casoId, destinatario) {
+  const { caso, datos, porFuente } = await cargarDatosInforme(casoId);
+  return enviarInformePorCorreo(caso, datos, porFuente, destinatario);
 }

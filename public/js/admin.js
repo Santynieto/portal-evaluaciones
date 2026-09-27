@@ -169,6 +169,13 @@ async function abrirDetalle(casoId) {
     <div class="error" id="det-error"></div>
     <button id="det-guardar">Guardar cambios</button>
     <button class="secundario" id="det-generar-pdf" type="button">Generar PDF para el cliente</button>
+
+    <h3 style="margin-top:24px;">Enviar informe por correo</h3>
+    <label for="det-correo-destinatario">Correo del destinatario</label>
+    <input type="email" id="det-correo-destinatario" value="${datos?.email_contacto || ""}">
+    <div class="error" id="det-correo-error"></div>
+    <div class="exito" id="det-correo-exito"></div>
+    <button class="secundario" id="det-enviar-correo" type="button">Enviar por correo</button>
   `;
 
   document.getElementById("det-estado").value = caso.estado;
@@ -194,6 +201,31 @@ async function abrirDetalle(casoId) {
   document.getElementById("det-generar-pdf").addEventListener("click", () => {
     const riesgoFinalActual = document.getElementById("det-riesgo-final").value || riesgoConsolidado;
     generarInformePDF({ ...caso, nivel_riesgo_final: riesgoFinalActual }, datos, porFuente);
+  });
+
+  document.getElementById("det-enviar-correo").addEventListener("click", async () => {
+    const errorEl = document.getElementById("det-correo-error");
+    const exitoEl = document.getElementById("det-correo-exito");
+    const btn = document.getElementById("det-enviar-correo");
+    errorEl.textContent = "";
+    exitoEl.textContent = "";
+
+    const destinatario = document.getElementById("det-correo-destinatario").value.trim();
+    if (!destinatario) {
+      errorEl.textContent = "Escribe un correo destinatario.";
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      const riesgoFinalActual = document.getElementById("det-riesgo-final").value || riesgoConsolidado;
+      await enviarInformePorCorreo({ ...caso, nivel_riesgo_final: riesgoFinalActual }, datos, porFuente, destinatario);
+      exitoEl.textContent = `Informe enviado a ${destinatario}.`;
+    } catch (err) {
+      errorEl.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   document.getElementById("overlay-detalle").classList.remove("oculto");
