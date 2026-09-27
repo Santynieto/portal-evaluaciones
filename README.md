@@ -54,6 +54,7 @@ public/            <- esto es lo que se despliega (Vercel/Netlify)
 netlify/functions/
   crear-evaluado.js      Function servidor: crea usuario+caso en un solo paso
   analizar-documento.js  Function servidor: analiza un PDF de Judicatura con Claude
+  enviar-informe.js      Function servidor: envía el PDF del informe por correo (Resend)
 supabase/
   schema.sql               Esquema completo (para una instalación nueva)
   patch_analistas.sql      Parche: agrega el rol analista
@@ -180,6 +181,30 @@ servidor `netlify/functions/analizar-documento.js`. Para activarlo:
 
 Sin esta variable configurada, el botón "Analizar con IA" simplemente
 mostrará un error — el resto del portal sigue funcionando normal.
+
+## Paso 9 — Habilitar el envío del informe por correo (opcional)
+
+El admin puede mandar el PDF del informe directo por correo desde el panel
+(`netlify/functions/enviar-informe.js`, usa [Resend](https://resend.com)).
+
+1. Crea una cuenta en https://resend.com (gratis hasta 3,000 correos/mes).
+2. En Resend, ve a **Domains > Add Domain** y agrega `defender.com.ec`.
+   Te va a dar registros **TXT/CNAME** de verificación (SPF/DKIM) —
+   agrégalos en el mismo panel de zona DNS de nic.ec donde ya agregamos el
+   subdominio `evaluaciones` (Nic.ec > Mis Dominios > defender.com.ec >
+   Gestiona tu dominio > zona DNS), sin tocar los registros existentes de
+   Microsoft 365.
+3. Espera a que Resend marque el dominio como **Verified**.
+4. En Resend, ve a **API Keys > Create API Key** y cópiala.
+5. En Netlify, agrega la variable de entorno `RESEND_API_KEY` (marca
+   "Contains secret values").
+6. Vuelve a desplegar (nuevo `git push` o "Trigger deploy").
+
+El remitente configurado es `informes@defender.com.ec` (ver
+`netlify/functions/enviar-informe.js`, constante `REMITENTE`) — cámbialo
+ahí si prefieres otra dirección. Sin `RESEND_API_KEY` configurada, el botón
+"Enviar por correo" mostrará un error; el resto del portal sigue
+funcionando normal.
 
 ## Cómo se crea un caso nuevo (flujo del admin)
 
