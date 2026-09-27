@@ -9,35 +9,45 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="topbar">
-    <h1 class="marca"><img src="assets/logo-defender.png" alt="DEFENDER" class="logo-marca"> <span class="separador">·</span> Portal de Evaluaciones</h1>
-  </header>
-
-  <main>
-    <div class="card">
-      <h2>Iniciar sesión</h2>
-      <p style="color:var(--texto-tenue); font-size:14px;">
-        Ingresa con el usuario y contraseña que te fueron entregados por el equipo Defender
-        para completar tu proceso de evaluación.
-      </p>
-
-      <form id="form-login">
-        <label for="email">Correo electrónico</label>
-        <input type="email" id="email" required autocomplete="username">
-
-        <label for="password">Contraseña</label>
-        <input type="password" id="password" required autocomplete="current-password">
-
-        <div class="error" id="error-login"></div>
-        <button type="submit" id="btn-login">Ingresar</button>
-      </form>
+  <div class="portada">
+    <div class="portada-marca">
+      <img src="assets/escudo-defender.png" alt="Defender" class="escudo">
+      <h1>Defender</h1>
+      <div class="barra"></div>
+      <p>Somos la empresa líder en verificación de confianza y gestión de riesgo en Ecuador. Este portal reúne nuestros tres servicios de evaluación, en un solo lugar.</p>
+      <div class="portada-servicios">
+        <span>Check</span>
+        <span>Due Diligence</span>
+        <span>Watch</span>
+      </div>
     </div>
 
-    <p style="color:var(--texto-tenue); font-size:12px; font-family:'Roboto',Arial,sans-serif;">
-      Tus datos son tratados conforme a la Ley Orgánica de Protección de Datos Personales (LOPDP) del Ecuador.
-      Si tienes problemas para ingresar, contacta a quien te invitó a este proceso.
-    </p>
-  </main>
+    <div class="portada-form">
+      <div class="card">
+        <h2>Iniciar sesión</h2>
+        <p style="color:var(--texto-tenue); font-size:14px;">
+          Ingresa con el usuario y contraseña que te fueron entregados por el equipo Defender
+          para completar tu proceso de evaluación.
+        </p>
+
+        <form id="form-login">
+          <label for="email">Correo electrónico</label>
+          <input type="email" id="email" required autocomplete="username">
+
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" required autocomplete="current-password">
+
+          <div class="error" id="error-login"></div>
+          <button type="submit" id="btn-login">Ingresar</button>
+        </form>
+      </div>
+
+      <p class="nota-legal">
+        Tus datos son tratados conforme a la Ley Orgánica de Protección de Datos Personales (LOPDP) del Ecuador.
+        Si tienes problemas para ingresar, contacta a quien te invitó a este proceso.
+      </p>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="js/config.js"></script>

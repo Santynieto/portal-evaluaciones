@@ -274,3 +274,102 @@ tr.clickable:hover { background: rgba(37,37,37,0.04); }
 .doc-link:hover { border-color: var(--rojo); }
 
 .oculto { display: none !important; }
+
+/* ---------------------------------------------------------------------
+   Portada de login: dos paneles. Es de las pocas pantallas donde el
+   manual permite texto centrado ("sin texto centrado salvo portadas y
+   certificados").
+--------------------------------------------------------------------- */
+.portada {
+  display: flex;
+  min-height: 100vh;
+}
+
+.portada-marca {
+  flex: 1 1 42%;
+  background: var(--negro-neutro);
+  color: var(--blanco-humo);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 32px;
+}
+
+.portada-marca .escudo {
+  width: 110px;
+  height: auto;
+  margin-bottom: 28px;
+}
+
+.portada-marca h1 {
+  color: var(--blanco-humo);
+  font-size: 38px;
+  line-height: 1.05;
+  margin: 0 0 18px;
+}
+
+.portada-marca .barra {
+  width: 64px;
+  height: 4px;
+  background: var(--rojo);
+  margin-bottom: 18px;
+}
+
+.portada-marca p {
+  max-width: 360px;
+  color: var(--texto-tenue);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.portada-marca .portada-servicios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+.portada-marca .portada-servicios span {
+  font-family: "Roboto Mono", Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--blanco-humo);
+  border: 1px solid var(--grafito);
+  border-radius: 4px;
+  padding: 6px 12px;
+}
+
+.portada-form {
+  flex: 1 1 58%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--blanco-humo);
+  padding: 40px 24px;
+}
+
+.portada-form .card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.portada-form .nota-legal {
+  max-width: 400px;
+  color: var(--texto-tenue);
+  font-size: 12px;
+  font-family: "Roboto", Arial, sans-serif;
+  margin-top: 20px;
+}
+
+@media (max-width: 860px) {
+  .portada { flex-direction: column; }
+  .portada-marca { padding: 36px 24px; flex: 0 0 auto; }
+  .portada-marca .escudo { width: 76px; margin-bottom: 18px; }
+  .portada-marca h1 { font-size: 28px; }
+}
