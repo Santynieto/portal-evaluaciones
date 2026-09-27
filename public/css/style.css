@@ -327,21 +327,34 @@ tr.clickable:hover { background: rgba(37,37,37,0.04); }
 
 .portada-marca .portada-servicios {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 28px;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 32px;
+  max-width: 360px;
+  text-align: left;
 }
 
-.portada-marca .portada-servicios span {
+.portada-marca .servicio {
+  border-top: 1px solid var(--grafito);
+  padding-top: 12px;
+}
+
+.portada-marca .servicio strong {
+  display: block;
   font-family: "Roboto Mono", Consolas, monospace;
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--blanco-humo);
-  border: 1px solid var(--grafito);
-  border-radius: 4px;
-  padding: 6px 12px;
+  color: var(--rojo);
+  margin-bottom: 4px;
+}
+
+.portada-marca .servicio span {
+  display: block;
+  font-family: "Roboto", Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--texto-tenue);
 }
 
 .portada-form {
