@@ -111,6 +111,23 @@ async function abrirDetalle(casoId) {
 
   const cedulaUrl = await enlaceDocumento(casoId, "cedula");
 
+  const { data: biometria } = await window.sb
+    .from("verificaciones_biometricas")
+    .select("*")
+    .eq("caso_id", casoId)
+    .order("creado_en", { ascending: false });
+
+  const biometriaHtml = (await Promise.all((biometria || []).map(async (b) => {
+    let fotoHtml = "-";
+    if (b.foto_path) {
+      const { data: signed } = await window.sb.storage.from("documentos").createSignedUrl(b.foto_path, 300);
+      fotoHtml = signed ? `<a class="doc-link" href="${signed.signedUrl}" target="_blank" rel="noopener">Ver selfie ↗</a>` : "-";
+    }
+    return `<li>${new Date(b.creado_en).toLocaleString("es-EC")} — ${b.similitud != null ? Number(b.similitud).toFixed(0) + "%" : "-"} —
+      <span class="badge ${b.aprobado ? "aprobado" : "rechazado"}">${b.aprobado ? "coincide" : "no concluyente"}</span>
+      ${b.detalle ? ` — ${b.detalle}` : ""} — ${fotoHtml}</li>`;
+  }))).join("") || "<li><em>Sin intentos de verificación biométrica todavía.</em></li>";
+
   const { data: verificaciones } = await window.sb
     .from("verificaciones")
     .select("*")
@@ -138,6 +155,8 @@ async function abrirDetalle(casoId) {
         <p>
           ${cedulaUrl ? `<a class="doc-link" href="${cedulaUrl}" target="_blank" rel="noopener">Ver cédula cargada por el evaluado ↗</a>` : "<em>El evaluado aún no cargó su cédula.</em>"}
         </p>
+        <p style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--texto-tenue);">Verificación biométrica al login</p>
+        <ul>${biometriaHtml}</ul>
       ` : ""}
       ${info.url ? `<p><a class="doc-link" href="${info.url}" target="_blank" rel="noopener">Abrir ${info.nombre} ↗</a></p>` : ""}
 

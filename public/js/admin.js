@@ -94,6 +94,23 @@ async function abrirDetalle(casoId) {
   for (const v of verificaciones || []) porFuente[v.fuente] = v;
   const riesgoConsolidado = calcularRiesgoConsolidado(porFuente);
 
+  const { data: biometria } = await window.sb
+    .from("verificaciones_biometricas")
+    .select("*")
+    .eq("caso_id", casoId)
+    .order("creado_en", { ascending: false });
+
+  const biometriaHtml = (await Promise.all((biometria || []).map(async (b) => {
+    let fotoHtml = "-";
+    if (b.foto_path) {
+      const { data: signed } = await window.sb.storage.from("documentos").createSignedUrl(b.foto_path, 300);
+      fotoHtml = signed ? `<a class="doc-link" href="${signed.signedUrl}" target="_blank" rel="noopener">Ver selfie ↗</a>` : "-";
+    }
+    return `<li>${new Date(b.creado_en).toLocaleString("es-EC")} — ${b.similitud != null ? Number(b.similitud).toFixed(0) + "%" : "-"} —
+      <span class="badge ${b.aprobado ? "aprobado" : "rechazado"}">${b.aprobado ? "coincide" : "no concluyente"}</span>
+      ${b.detalle ? ` — ${b.detalle}` : ""} — ${fotoHtml}</li>`;
+  }))).join("") || "<li><em>Sin intentos de verificación biométrica todavía.</em></li>";
+
   const verificacionesHtml = (await Promise.all(FASES_VERIFICACION.map(async (fase) => {
     const v = porFuente[fase.fuente];
     if (!v) {
@@ -133,6 +150,9 @@ async function abrirDetalle(casoId) {
 
     <h3>Documentos</h3>
     <div>${enlacesHtml}</div>
+
+    <h3>Verificación biométrica (login)</h3>
+    <ul>${biometriaHtml}</ul>
 
     <h3>Verificación por fases (analista)</h3>
     <p>Riesgo consolidado: ${riesgoConsolidado ? `<span class="badge ${riesgoConsolidado}">${riesgoConsolidado}</span>` : "<em>Sin fases evaluadas todavía.</em>"}</p>
