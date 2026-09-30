@@ -125,9 +125,11 @@ async function iniciarVerificacionBiometrica() {
         formEl.classList.remove("oculto");
       }, 1800);
     } catch (err) {
-      errorEl.textContent = err.message;
+      errorEl.textContent = "No se pudo completar la verificación (" + err.message + "). Puedes continuar de todas formas.";
       btnFoto.disabled = false;
       btnFoto.textContent = "Tomar foto y verificar";
+      btnSinCamara.textContent = "Continuar sin verificación";
+      btnSinCamara.classList.remove("oculto");
     }
   });
 }

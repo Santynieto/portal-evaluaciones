@@ -206,6 +206,61 @@ ahí si prefieres otra dirección. Sin `RESEND_API_KEY` configurada, el botón
 "Enviar por correo" mostrará un error; el resto del portal sigue
 funcionando normal.
 
+**Importante — SPF:** el dominio ya tiene un registro TXT de SPF para
+Microsoft 365 (`v=spf1 include:spf.protection.outlook.com ...`). Un
+dominio solo puede tener un TXT de SPF válido. Si Resend te da otro TXT
+que también empieza con `v=spf1`, **no crees un segundo registro** —
+edita el TXT existente y agrégale el `include:` de Resend antes de `~all`,
+por ejemplo:
+```
+v=spf1 include:spf.protection.outlook.com include:amazonses.com ~all
+```
+(el include exacto de Resend puede variar; usa el que te muestre su panel).
+
+## Paso 10 — Habilitar la verificación biométrica al login (opcional)
+
+Cuando el evaluado ya cargó su cédula, la próxima vez que entre al
+formulario se le pide una selfie por cámara, que se compara contra la
+foto de su cédula usando **Amazon Rekognition**
+(`netlify/functions/verificar-biometria.js`). No bloquea el acceso si no
+hay coincidencia clara — solo lo deja registrado para que el equipo
+Defender lo revise (visible en el panel de admin y de analista, dentro de
+la Fase 1 · Identidad).
+
+1. Crea una cuenta en https://aws.amazon.com (tiene capa gratuita: 5,000
+   comparaciones gratis el primer año en cuentas nuevas; después, ~$0.001
+   USD por comparación — a tu volumen, centavos al año).
+2. En la consola de AWS, ve a **IAM > Users > Create user**. Dale un
+   nombre (ej. `portal-evaluaciones-rekognition`) y **no** actives acceso
+   a la consola (solo necesita acceso por API).
+3. En **Permissions**, elige "Attach policies directly" y crea una
+   política personalizada con **solo** este permiso (principio de mínimo
+   privilegio — nunca uses una política de administrador completo):
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       { "Effect": "Allow", "Action": "rekognition:CompareFaces", "Resource": "*" }
+     ]
+   }
+   ```
+4. Ya creado el usuario, entra a él > **Security credentials** > **Create
+   access key** (elige el caso de uso "Application running outside AWS" o
+   similar). Copia el **Access Key ID** y el **Secret Access Key** — este
+   último solo se muestra una vez.
+5. En Netlify, agrega tres variables de entorno:
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY` (marca "Contains secret values")
+   - `AWS_REGION` (ej. `us-east-1`)
+6. Corre [`supabase/patch_biometria.sql`](supabase/patch_biometria.sql) en
+   el SQL Editor de Supabase si tu base de datos ya existía.
+7. Vuelve a desplegar (nuevo `git push` o "Trigger deploy").
+
+Sin estas variables configuradas, el paso de verificación biométrica
+mostrará un error al evaluado — considera desactivarlo temporalmente
+(quitando la llamada a `iniciarVerificacionBiometrica()` en
+`public/js/formulario.js`) si no vas a configurar esto de inmediato.
+
 ## Cómo se crea un caso nuevo (flujo del admin)
 
 1. Entra al **panel admin** del portal (`admin.html`), sección "Nuevo caso":
