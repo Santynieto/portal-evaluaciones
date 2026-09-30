@@ -15,6 +15,20 @@
   </header>
 
   <main id="contenido" class="oculto">
+    <div class="card oculto" id="card-biometria">
+      <h2>Verificación de identidad</h2>
+      <p style="color:var(--texto-tenue); font-size:14px;">
+        Antes de continuar, necesitamos confirmar que eres tú. Enciende tu cámara y tómate una foto —
+        la comparamos con la cédula que ya cargaste.
+      </p>
+      <video id="video-biometria" autoplay playsinline style="width:100%; max-width:320px; border-radius:4px; background:#000; display:block;"></video>
+      <canvas id="canvas-biometria" class="oculto"></canvas>
+      <div class="error" id="error-biometria"></div>
+      <div class="exito" id="exito-biometria"></div>
+      <button type="button" id="btn-tomar-foto">Tomar foto y verificar</button>
+      <button type="button" class="secundario oculto" id="btn-continuar-sin-camara">No tengo cámara disponible / continuar</button>
+    </div>
+
     <div class="card" id="card-estado">
       <h2 id="titulo-caso">Cargando...</h2>
       <p style="color:var(--texto-tenue); font-size:14px;">

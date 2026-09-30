@@ -47,13 +47,89 @@ async function subirDocumentoSiCorresponde(inputId, nombreArchivo) {
 
 async function marcarDocumentosExistentes() {
   const { data } = await window.sb.storage.from("documentos").list(CASO.id);
-  if (!data) return;
-  if (data.some(f => f.name.startsWith("cedula"))) {
+  if (!data) return false;
+  const tieneCedula = data.some(f => f.name.startsWith("cedula"));
+  if (tieneCedula) {
     document.getElementById("doc_cedula_ok").classList.remove("oculto");
   }
   if (data.some(f => f.name.startsWith("cv"))) {
     document.getElementById("doc_cv_ok").classList.remove("oculto");
   }
+  return tieneCedula;
+}
+
+async function iniciarVerificacionBiometrica() {
+  const cardBiometria = document.getElementById("card-biometria");
+  const formEl = document.getElementById("form-evaluado");
+  const video = document.getElementById("video-biometria");
+  const canvas = document.getElementById("canvas-biometria");
+  const errorEl = document.getElementById("error-biometria");
+  const exitoEl = document.getElementById("exito-biometria");
+  const btnFoto = document.getElementById("btn-tomar-foto");
+  const btnSinCamara = document.getElementById("btn-continuar-sin-camara");
+
+  cardBiometria.classList.remove("oculto");
+  formEl.classList.add("oculto");
+
+  let stream = null;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    video.srcObject = stream;
+  } catch (err) {
+    errorEl.textContent = "No se pudo acceder a la cámara: " + err.message;
+    btnFoto.classList.add("oculto");
+    btnSinCamara.classList.remove("oculto");
+  }
+
+  btnSinCamara.addEventListener("click", () => {
+    cardBiometria.classList.add("oculto");
+    formEl.classList.remove("oculto");
+  });
+
+  btnFoto.addEventListener("click", async () => {
+    errorEl.textContent = "";
+    exitoEl.textContent = "";
+    btnFoto.disabled = true;
+    btnFoto.textContent = "Verificando...";
+    try {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const { data: { session } } = await window.sb.auth.getSession();
+      const res = await fetch("/.netlify/functions/verificar-biometria", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ selfieBase64: base64 }),
+      });
+      const resultado = await res.json();
+      if (!res.ok) throw new Error(resultado.error || "Error verificando tu identidad.");
+
+      if (stream) stream.getTracks().forEach(t => t.stop());
+
+      if (resultado.aprobado) {
+        exitoEl.textContent = `Identidad verificada (${resultado.similitud.toFixed(0)}% de coincidencia). Continuando...`;
+      } else {
+        exitoEl.textContent = `No logramos confirmar una coincidencia clara (${resultado.similitud.toFixed(0)}%). Puedes continuar — el equipo Defender revisará esto manualmente.`;
+      }
+
+      setTimeout(() => {
+        cardBiometria.classList.add("oculto");
+        formEl.classList.remove("oculto");
+      }, 1800);
+    } catch (err) {
+      errorEl.textContent = err.message;
+      btnFoto.disabled = false;
+      btnFoto.textContent = "Tomar foto y verificar";
+    }
+  });
 }
 
 async function init() {
@@ -103,13 +179,17 @@ async function init() {
     crearFilaReferencia();
   }
 
-  await marcarDocumentosExistentes();
+  const tieneCedula = await marcarDocumentosExistentes();
 
   if (datos && datos.enviado) {
     aplicarSoloLectura(true);
   }
 
   document.getElementById("contenido").classList.remove("oculto");
+
+  if (tieneCedula) {
+    iniciarVerificacionBiometrica();
+  }
 }
 
 document.getElementById("btn-agregar-ref").addEventListener("click", () => crearFilaReferencia());

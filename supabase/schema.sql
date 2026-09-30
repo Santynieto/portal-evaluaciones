@@ -217,6 +217,35 @@ create policy "verificaciones_update_analista_o_admin"
   on public.verificaciones for update
   using (public.is_analista() or public.is_admin());
 
+-- ---------------------------------------------------------------------
+-- 4c. TABLA: verificaciones_biometricas
+--    Un renglón por cada intento de verificación facial al momento del
+--    login del evaluado (selfie vs. foto de cédula cargada). Es un log
+--    (se acumulan los intentos, no se sobrescriben).
+-- ---------------------------------------------------------------------
+create table if not exists public.verificaciones_biometricas (
+  id uuid primary key default gen_random_uuid(),
+  caso_id uuid not null references public.casos(id) on delete cascade,
+  similitud numeric(5,2), -- 0.00 a 100.00
+  aprobado boolean not null default false,
+  foto_path text, -- ruta dentro del bucket "documentos" a la selfie capturada
+  detalle text, -- mensaje de error o nota (ej. "no se detectó rostro en la cédula")
+  creado_en timestamptz default now()
+);
+
+alter table public.verificaciones_biometricas enable row level security;
+
+create policy "biometria_select_propio_o_staff"
+  on public.verificaciones_biometricas for select
+  using (
+    exists (select 1 from public.casos c where c.id = caso_id and c.evaluado_user_id = auth.uid())
+    or public.is_admin()
+    or public.is_analista()
+  );
+
+-- Solo la función servidor (con service_role, que ignora RLS) inserta acá;
+-- no se necesita política de insert para el navegador.
+
 -- =====================================================================
 -- 5. STORAGE: bucket privado "documentos"
 --    Crear el bucket manualmente en Supabase Dashboard > Storage:
