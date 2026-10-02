@@ -55,6 +55,9 @@ async function marcarDocumentosExistentes() {
   if (data.some(f => f.name.startsWith("cv"))) {
     document.getElementById("doc_cv_ok").classList.remove("oculto");
   }
+  if (data.some(f => f.name.startsWith("iess"))) {
+    document.getElementById("doc_iess_ok").classList.remove("oculto");
+  }
   return tieneCedula;
 }
 
@@ -208,6 +211,7 @@ document.getElementById("form-evaluado").addEventListener("submit", async (e) =>
   try {
     await subirDocumentoSiCorresponde("doc_cedula", "cedula");
     await subirDocumentoSiCorresponde("doc_cv", "cv");
+    await subirDocumentoSiCorresponde("doc_iess", "iess");
 
     const payload = {
       caso_id: CASO.id,

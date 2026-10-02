@@ -45,6 +45,7 @@ const FUENTES_VERIFICACION = [
   { id: "supercias", nombre: "Superintendencia de Compañías", url: "https://appscvsmovil.supercias.gob.ec/PortalInfor/consultaPrincipal.zul" },
   { id: "supa", nombre: "SUPA", url: "https://supa.funcionjudicial.gob.ec/pensiones/publico/consulta.jsf" },
   { id: "whitepages", nombre: "Whitepages.lat", url: "https://whitepages.lat/users/log_in" },
+  { id: "iess", nombre: "IESS (mecanizado laboral)", url: null },
   { id: "redes_sociales", nombre: "Redes sociales", url: null },
   { id: "otro", nombre: "Otra fuente", url: null },
 ];
@@ -53,11 +54,13 @@ const FUENTES_VERIFICACION = [
 const FASES_VERIFICACION = [
   { fuente: "whitepages", numero: 1, titulo: "Identidad de la persona",
     descripcion: "Revisa la cédula que cargó el evaluado y contrasta sus datos en Whitepages." },
-  { fuente: "supa", numero: 2, titulo: "SUPA" },
-  { fuente: "fiscalia", numero: 3, titulo: "Fiscalía" },
-  { fuente: "ministerio_interior", numero: 4, titulo: "Ministerio del Interior" },
-  { fuente: "judicatura", numero: 5, titulo: "Consejo de la Judicatura" },
-  { fuente: "redes_sociales", numero: 6, titulo: "Entorno web" },
+  { fuente: "iess", numero: 2, titulo: "Historial laboral (IESS)",
+    descripcion: "Revisa el Certificado de Mecanizado que cargó el evaluado: tiempos por empleador y vacíos entre empleos." },
+  { fuente: "supa", numero: 3, titulo: "SUPA" },
+  { fuente: "fiscalia", numero: 4, titulo: "Fiscalía" },
+  { fuente: "ministerio_interior", numero: 5, titulo: "Ministerio del Interior" },
+  { fuente: "judicatura", numero: 6, titulo: "Consejo de la Judicatura" },
+  { fuente: "redes_sociales", numero: 7, titulo: "Entorno web" },
 ];
 
 const NIVEL_RIESGO_ORDEN = { bajo: 1, medio: 2, alto: 3, critico: 4 };

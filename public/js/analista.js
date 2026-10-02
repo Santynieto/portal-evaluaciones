@@ -110,6 +110,7 @@ async function abrirDetalle(casoId) {
   ).join("") || "<li>Sin referencias registradas.</li>";
 
   const cedulaUrl = await enlaceDocumento(casoId, "cedula");
+  const iessUrl = await enlaceDocumento(casoId, "iess");
 
   const { data: biometria } = await window.sb
     .from("verificaciones_biometricas")
@@ -166,6 +167,15 @@ async function abrirDetalle(casoId) {
         <button type="button" class="secundario judicatura-btn-analizar">Analizar con IA</button>
         <span class="judicatura-estado" style="margin-left:10px; font-size:13px; color:var(--texto-tenue);"></span>
         <div class="judicatura-analisis">${(existente?.analisis_documentos || []).map(analisisCardHtml).join("")}</div>
+      ` : ""}
+
+      ${fase.fuente === "iess" ? `
+        <p>
+          ${iessUrl ? `<a class="doc-link" href="${iessUrl}" target="_blank" rel="noopener">Ver mecanizado cargado por el evaluado ↗</a>` : "<em>El evaluado aún no cargó su certificado de mecanizado.</em>"}
+        </p>
+        <button type="button" class="secundario iess-btn-analizar" ${iessUrl ? "" : "disabled"}>Analizar con IA</button>
+        <span class="iess-estado" style="margin-left:10px; font-size:13px; color:var(--texto-tenue);"></span>
+        <div class="iess-analisis">${(existente?.analisis_documentos || []).map(analisisCardHtml).join("")}</div>
       ` : ""}
 
       <label>Nivel de riesgo</label>
@@ -266,7 +276,7 @@ async function abrirDetalle(casoId) {
             const res = await fetch("/.netlify/functions/analizar-documento", {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-              body: JSON.stringify({ pdfBase64: base64, nombreArchivo: archivo.name }),
+              body: JSON.stringify({ pdfBase64: base64, nombreArchivo: archivo.name, tipoDocumento: "judicatura" }),
             });
             const analisis = await res.json();
             if (!res.ok) throw new Error(analisis.error || "Error analizando el documento.");
@@ -281,6 +291,52 @@ async function abrirDetalle(casoId) {
         }
         estadoEl.textContent = "Listo. No olvides darle 'Guardar fase' para conservar estos análisis.";
         input.value = "";
+      });
+    }
+
+    const btnAnalizarIess = card.querySelector(".iess-btn-analizar");
+    if (btnAnalizarIess) {
+      btnAnalizarIess.addEventListener("click", async () => {
+        const estadoEl = card.querySelector(".iess-estado");
+        const contenedor = card.querySelector(".iess-analisis");
+        estadoEl.textContent = "Descargando el documento cargado por el evaluado...";
+        btnAnalizarIess.disabled = true;
+        try {
+          const { data: archivos } = await window.sb.storage.from("documentos").list(casoId);
+          const archivo = (archivos || []).find(f => f.name.startsWith("iess"));
+          if (!archivo) throw new Error("No se encontró el documento.");
+
+          const { data: blob, error: descargaError } = await window.sb.storage
+            .from("documentos")
+            .download(`${casoId}/${archivo.name}`);
+          if (descargaError) throw new Error(descargaError.message);
+
+          const base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(",")[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+
+          estadoEl.textContent = "Analizando con IA...";
+          const { data: { session } } = await window.sb.auth.getSession();
+          const res = await fetch("/.netlify/functions/analizar-documento", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ pdfBase64: base64, nombreArchivo: archivo.name, tipoDocumento: "iess" }),
+          });
+          const analisis = await res.json();
+          if (!res.ok) throw new Error(analisis.error || "Error analizando el documento.");
+
+          const entrada = { archivo_path: `${casoId}/${archivo.name}`, nombre: archivo.name, ...analisis, analizado_en: new Date().toISOString() };
+          analisisDocumentos.push(entrada);
+          contenedor.insertAdjacentHTML("beforeend", analisisCardHtml(entrada));
+          estadoEl.textContent = "Listo. No olvides darle 'Guardar fase' para conservar este análisis.";
+        } catch (err) {
+          estadoEl.textContent = "Error: " + err.message;
+        } finally {
+          btnAnalizarIess.disabled = false;
+        }
       });
     }
 

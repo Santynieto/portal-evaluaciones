@@ -184,7 +184,7 @@ create table if not exists public.verificaciones (
   id uuid primary key default gen_random_uuid(),
   caso_id uuid not null references public.casos(id) on delete cascade,
   fuente text not null
-    check (fuente in ('judicatura','ministerio_interior','fiscalia','supercias','supa','whitepages','redes_sociales','otro')),
+    check (fuente in ('judicatura','ministerio_interior','fiscalia','supercias','supa','whitepages','iess','redes_sociales','otro')),
   nivel_riesgo text not null default 'bajo'
     check (nivel_riesgo in ('bajo','medio','alto','critico')),
   notas text,
