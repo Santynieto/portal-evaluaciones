@@ -53,14 +53,17 @@ public/            <- esto es lo que se despliega (Vercel/Netlify)
   js/admin.js
 netlify/functions/
   crear-evaluado.js      Function servidor: crea usuario+caso en un solo paso
-  analizar-documento.js  Function servidor: analiza un PDF de Judicatura con Claude
+  analizar-documento.js  Function servidor: analiza un PDF (Judicatura o IESS) con Claude
   enviar-informe.js      Function servidor: envía el PDF del informe por correo (Resend)
+  verificar-biometria.js Function servidor: compara selfie vs. cédula (AWS Rekognition)
 supabase/
   schema.sql               Esquema completo (para una instalación nueva)
   patch_analistas.sql      Parche: agrega el rol analista
   patch_riesgo_captura.sql Parche: niveles de riesgo, capturas y PDF final
   patch_fases.sql          Parche: una fila por caso+fuente (no historial)
   patch_analisis_ia.sql    Parche: columna para los análisis de IA
+  patch_biometria.sql      Parche: verificación biométrica al login
+  patch_iess.sql           Parche: agrega "iess" como fuente válida
                            (correr los parches solo si el schema.sql ya
                            estaba cargado antes de que existieran)
 ```
